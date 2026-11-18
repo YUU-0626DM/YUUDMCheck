@@ -1,1791 +1,256 @@
 <!DOCTYPE html>
-<html lang="ja" class="light">
+<html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>デュエマ所持カード管理ツール - DM Card Vault</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts: Inter & Noto Sans JP -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['"Inter"', '"Noto Sans JP"', 'sans-serif'],
-          },
-          colors: {
-            dm: {
-              fire: '#ef4444',
-              water: '#3b82f6',
-              nature: '#22c55e',
-              light: '#eab308',
-              darkness: '#9333ea',
-              zero: '#64748b',
-            }
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    /* カスタムスクロールバーとユーティリティ */
-    body {
-      font-family: 'Inter', 'Noto Sans JP', sans-serif;
-    }
-    .rainbow-badge {
-      background: linear-gradient(135deg, #ef4444 0%, #eab308 25%, #22c55e 50%, #3b82f6 75%, #9333ea 100%);
-      color: white;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    }
-    .card-hover {
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .card-hover:hover {
-      transform: translateY(-2px);
-    }
-    /* 数値入力の矢印非表示 */
-    input[type=number]::-webkit-inner-spin-button, 
-    input[type=number]::-webkit-outer-spin-button { 
-      -webkit-appearance: none; 
-      margin: 0; 
-    }
-    input[type=number] {
-      -moz-appearance: textfield;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>デュエマ所持カード管理ツール</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 min-h-screen transition-colors duration-200 pb-20 sm:pb-8">
-
-  <!-- ヘッダー -->
-  <header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
-      <!-- ロゴ・タイトル -->
-      <div class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-red-600 via-amber-500 to-blue-600 flex items-center justify-center text-white font-black text-lg shadow-md">
-          DM
-        </div>
-        <div>
-          <h1 class="font-bold text-base sm:text-lg leading-tight tracking-tight">DM Card Vault</h1>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">デュエル・マスターズ 所持カード管理・検索</p>
-        </div>
-      </div>
-
-      <!-- アクションボタン群 -->
-      <div class="flex items-center gap-2">
-        <!-- デッキリスト照合・不足抽出ボタン -->
-        <button onclick="openDeckModal()" class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm transition" title="デッキリストから不足カードを抽出">
-          <i class="fa-solid fa-file-import"></i>
-          <span>デッキから不足抽出</span>
-        </button>
-
-        <!-- データ管理ボタン -->
-        <button onclick="openDataModal()" class="p-2.5 sm:px-3 sm:py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium flex items-center gap-1.5 transition" title="バックアップ・データ管理">
-          <i class="fa-solid fa-database"></i>
-          <span class="hidden md:inline">データ管理</span>
-        </button>
-
-        <!-- ダークモード切替 -->
-        <button onclick="toggleDarkMode()" id="themeToggleBtn" class="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition" title="テーマ切替">
-          <i class="fa-solid fa-moon dark:hidden"></i>
-          <i class="fa-solid fa-sun hidden dark:inline text-amber-400"></i>
-        </button>
-
-        <!-- 新規カード登録ボタン（PC表示） -->
-        <button onclick="openCardModal()" class="hidden sm:flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-sm transition">
-          <i class="fa-solid fa-plus"></i>
-          <span>カード登録</span>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- メインコンテンツ -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 space-y-5">
-
-    <!-- ダッシュボード（サマリー表示） -->
-    <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      <div class="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-        <div>
-          <p class="text-xs font-medium text-slate-500 dark:text-slate-400">総登録種類</p>
-          <p class="text-xl sm:text-2xl font-extrabold mt-0.5"><span id="statTotalTypes">0</span><span class="text-xs font-normal ml-1 text-slate-500">種</span></p>
-        </div>
-        <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hidden sm:flex items-center justify-center text-lg">
-          <i class="fa-solid fa-layer-group"></i>
-        </div>
-      </div>
-
-      <div class="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-        <div>
-          <p class="text-xs font-medium text-slate-500 dark:text-slate-400">総所持枚数</p>
-          <p class="text-xl sm:text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-0.5"><span id="statTotalCount">0</span><span class="text-xs font-normal ml-1 text-slate-500">枚</span></p>
-        </div>
-        <div class="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hidden sm:flex items-center justify-center text-lg">
-          <i class="fa-solid fa-clone"></i>
-        </div>
-      </div>
-
-      <div class="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-        <div>
-          <p class="text-xs font-medium text-slate-500 dark:text-slate-400">未所持種類 (0枚)</p>
-          <p class="text-xl sm:text-2xl font-extrabold text-amber-600 dark:text-amber-400 mt-0.5"><span id="statUnownedTypes">0</span><span class="text-xs font-normal ml-1 text-slate-500">種</span></p>
-        </div>
-        <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 hidden sm:flex items-center justify-center text-lg">
-          <i class="fa-regular fa-star"></i>
-        </div>
-      </div>
-
-      <div class="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-4 border border-rose-200/80 dark:border-rose-900/50 shadow-sm flex items-center justify-between cursor-pointer hover:bg-rose-50/40 dark:hover:bg-rose-950/20 transition" onclick="setStatusFilter('shortage')" title="クリックで不足カードのみ表示">
-        <div>
-          <p class="text-xs font-bold text-rose-600 dark:text-rose-400">不足カード総枚数</p>
-          <p class="text-xl sm:text-2xl font-extrabold text-rose-600 dark:text-rose-400 mt-0.5"><span id="statTotalShortage">0</span><span class="text-xs font-normal ml-1 text-slate-500">枚不足</span></p>
-        </div>
-        <div class="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-950/70 text-rose-600 dark:text-rose-400 hidden sm:flex items-center justify-center text-lg">
-          <i class="fa-solid fa-cart-shopping"></i>
-        </div>
-      </div>
-    </section>
-
-    <!-- 検索・フィルタリング・ソートコントロール -->
-    <section class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3.5">
-      <!-- 1行目: キーワード検索 & 所持状態 & 表示切替 -->
-      <div class="flex flex-col xl:flex-row gap-3">
-        <!-- 検索ボックス -->
-        <div class="relative flex-1">
-          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-          <input type="text" id="searchInput" placeholder="カード名、収録弾(DM24-EX1)、メモで検索..." 
-            class="w-full pl-10 pr-9 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-950 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-sm outline-none transition">
-          <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-            <i class="fa-solid fa-circle-xmark"></i>
-          </button>
-        </div>
-
-        <!-- 所持ステータスフィルタ -->
-        <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shrink-0 overflow-x-auto">
-          <button type="button" onclick="setStatusFilter('all')" data-status="all" class="status-filter-btn flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm whitespace-nowrap">
-            すべて
-          </button>
-          <button type="button" onclick="setStatusFilter('owned')" data-status="owned" class="status-filter-btn flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white whitespace-nowrap">
-            所持済み (1枚+)
-          </button>
-          <button type="button" onclick="setStatusFilter('unowned')" data-status="unowned" class="status-filter-btn flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white whitespace-nowrap">
-            未所持・不足 (欲しい)
-          </button>
-          <button type="button" onclick="setStatusFilter('shortage')" data-status="shortage" class="status-filter-btn flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition text-rose-600 dark:text-rose-400 hover:text-rose-700 whitespace-nowrap">
-            不足のみ
-          </button>
-        </div>
-
-        <!-- ソート & ビュー切替 -->
-        <div class="flex items-center gap-2 shrink-0">
-          <select id="sortSelect" onchange="renderCards()" class="flex-1 md:w-48 px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs sm:text-sm font-medium border-none outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
-            <option value="newest">登録・更新が新しい順</option>
-            <option value="shortage_desc">不足枚数が多い順</option>
-            <option value="name_asc">カード名順 (あ→ん)</option>
-            <option value="cost_asc">コストが低い順</option>
-            <option value="cost_desc">コストが高い順</option>
-            <option value="count_desc">所持枚数が多い順</option>
-            <option value="count_asc">所持枚数が少ない順</option>
-            <option value="oldest">登録が古い順</option>
-          </select>
-
-          <!-- PC向けグリッド/テーブル表示切替 -->
-          <div class="hidden lg:flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-            <button onclick="setViewMode('grid')" id="viewGridBtn" class="p-2 rounded-lg bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm transition" title="カードグリッド表示">
-              <i class="fa-solid fa-grip"></i>
-            </button>
-            <button onclick="setViewMode('table')" id="viewTableBtn" class="p-2 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition" title="リストテーブル表示">
-              <i class="fa-solid fa-list"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 2行目: 文明フィルタ -->
-      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-        <span class="text-xs font-bold text-slate-400 mr-1 shrink-0"><i class="fa-solid fa-filter mr-1"></i>文明:</span>
-        <button onclick="toggleCivFilter('all')" data-civ="all" class="civ-filter-btn px-3 py-1 rounded-full text-xs font-bold border transition shrink-0 bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900">
-          すべて
-        </button>
-        <button onclick="toggleCivFilter('火')" data-civ="火" class="civ-filter-btn px-3 py-1 rounded-full text-xs font-bold border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 hover:bg-red-100 transition shrink-0">
-          🔥 火
-        </button>
-        <button onclick="toggleCivFilter('水')" data-civ="水" class="civ-filter-btn px-3 py-1 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-900/60 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 transition shrink-0">
-          💧 水
-        </button>
-        <button onclick="toggleCivFilter('自然')" data-civ="自然" class="civ-filter-btn px-3 py-1 rounded-full text-xs font-bold border border-green-200 dark:border-green-900/60 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 hover:bg-green-100 transition shrink-0">
-          🌿 自然
-        </button>
-        <button onclick="toggleCivFilter('光')" data-civ="光" class="civ-filter-btn px-3 py-1 rounded-full text-xs font-bold border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 hover:bg-amber-100 transition shrink-0">
-          ✨ 光
-        </button>
-        <button onclick="toggleCivFilter('闇')" data-civ="闇" class="civ-filter-btn px-3 py-1 rounded-full text-xs font-bold border border-purple-200 dark:border-purple-900/60 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 hover:bg-purple-100 transition shrink-0">
-          💀 闇
-        </button>
-        <button onclick="toggleCivFilter('多色')" data-civ="多色" class="civ-filter-btn px-3 py-1 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 transition shrink-0">
-          🌈 多色
-        </button>
-        <button onclick="toggleCivFilter('ゼロ')" data-civ="ゼロ" class="civ-filter-btn px-3 py-1 rounded-full text-xs font-bold border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 transition shrink-0">
-          ⚪ ゼロ
-        </button>
-        <button onclick="toggleCivFilter('未設定')" data-civ="未設定" class="civ-filter-btn px-3 py-1 rounded-full text-xs font-bold border border-dashed border-slate-400 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 hover:bg-slate-200 transition shrink-0">
-          ❓ 文明未設定
-        </button>
-      </div>
-    </section>
-
-    <!-- 検索結果件数バー -->
-    <div class="flex items-center justify-between text-xs sm:text-sm text-slate-500 dark:text-slate-400 px-1">
-      <p>表示中: <span id="filteredCount" class="font-bold text-slate-800 dark:text-slate-200">0</span> 件</p>
-      <div class="flex items-center gap-3">
-        <button id="clearAllNeededBtn" onclick="confirmClearAllNeeded()" class="hidden text-xs text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 font-medium transition">
-          <i class="fa-solid fa-eraser mr-1"></i>全カードのデッキ必要数をリセット
-        </button>
-        <button id="resetFilterBtn" onclick="resetAllFilters()" class="hidden text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
-          <i class="fa-solid fa-rotate-left mr-1"></i>絞り込みを解除
-        </button>
-      </div>
-    </div>
-
-    <!-- カード一覧コンテナ（グリッド表示） -->
-    <section id="cardGridContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      <!-- JSでカード要素を生成 -->
-    </section>
-
-    <!-- カード一覧コンテナ（テーブル表示・PC向け） -->
-    <section id="cardTableContainer" class="hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
-              <th class="py-3 px-4">ステータス / 不足</th>
-              <th class="py-3 px-4">カード名 / 型番</th>
-              <th class="py-3 px-4">文明</th>
-              <th class="py-3 px-4">タイプ</th>
-              <th class="py-3 px-4 text-center">コスト</th>
-              <th class="py-3 px-4 text-center">必要数</th>
-              <th class="py-3 px-4 text-center">所持枚数</th>
-              <th class="py-3 px-4 text-right">操作</th>
-            </tr>
-          </thead>
-          <tbody id="cardTableBody" class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-            <!-- JSで行を生成 -->
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- 空状態メッセージ -->
-    <div id="emptyState" class="hidden bg-white dark:bg-slate-900 rounded-2xl p-10 text-center border border-slate-200 dark:border-slate-800">
-      <div class="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto mb-3 text-2xl">
-        <i class="fa-solid fa-magnifying-glass"></i>
-      </div>
-      <h3 class="text-base font-bold text-slate-800 dark:text-slate-200">該当するカードが見つかりません</h3>
-      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">検索キーワードや文明・所持状態のフィルタ条件を変更するか、新しいカードを登録してください。</p>
-      <div class="mt-4 flex justify-center gap-3">
-        <button onclick="resetAllFilters()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-semibold transition">
-          フィルタをリセット
-        </button>
-        <button onclick="openCardModal()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition">
-          + カードを登録
-        </button>
-      </div>
-    </div>
-
-  </main>
-
-  <!-- スマホ用フローティング新規登録ボタン -->
-  <button onclick="openCardModal()" class="sm:hidden fixed bottom-5 right-5 z-30 w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white shadow-lg shadow-indigo-600/30 flex items-center justify-center text-2xl transition" aria-label="カードを登録">
-    <i class="fa-solid fa-plus"></i>
-  </button>
-
-  <!-- ==================== カード登録・編集モーダル ==================== -->
-  <div id="cardModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-    <div class="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden my-auto animate-fade-in">
-      <!-- モーダルヘッダー -->
-      <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-        <h2 id="modalTitle" class="font-bold text-lg">新規カード登録</h2>
-        <button onclick="closeCardModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
-      </div>
-
-      <!-- フォーム -->
-      <form id="cardForm" onsubmit="saveCard(event)" class="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
-        <input type="hidden" id="cardId">
-
-        <!-- カード名 -->
-        <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-            カード名 <span class="text-red-500">*</span>
-          </label>
-          <input type="text" id="cardName" required placeholder="例: ボルシャック・ドギラゴン" 
-            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-sm outline-none">
-        </div>
-
-        <!-- 文明（複数選択可） -->
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="block text-xs font-bold text-slate-600 dark:text-slate-300">
-              文明（複数選択で自動的に多色扱い / 未選択で未設定）
-            </label>
-            <span id="civPreviewBadge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">未設定</span>
-          </div>
-          <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
-            <label class="cursor-pointer">
-              <input type="checkbox" name="civilization" value="火" onchange="updateCivSelection()" class="peer sr-only">
-              <div class="text-center py-2 px-1 rounded-xl border border-slate-200 dark:border-slate-700 peer-checked:bg-red-500 peer-checked:text-white peer-checked:border-red-500 text-xs font-bold transition select-none">
-                🔥 火
-              </div>
-            </label>
-            <label class="cursor-pointer">
-              <input type="checkbox" name="civilization" value="水" onchange="updateCivSelection()" class="peer sr-only">
-              <div class="text-center py-2 px-1 rounded-xl border border-slate-200 dark:border-slate-700 peer-checked:bg-blue-500 peer-checked:text-white peer-checked:border-blue-500 text-xs font-bold transition select-none">
-                💧 水
-              </div>
-            </label>
-            <label class="cursor-pointer">
-              <input type="checkbox" name="civilization" value="自然" onchange="updateCivSelection()" class="peer sr-only">
-              <div class="text-center py-2 px-1 rounded-xl border border-slate-200 dark:border-slate-700 peer-checked:bg-green-500 peer-checked:text-white peer-checked:border-green-500 text-xs font-bold transition select-none">
-                🌿 自然
-              </div>
-            </label>
-            <label class="cursor-pointer">
-              <input type="checkbox" name="civilization" value="光" onchange="updateCivSelection()" class="peer sr-only">
-              <div class="text-center py-2 px-1 rounded-xl border border-slate-200 dark:border-slate-700 peer-checked:bg-amber-400 peer-checked:text-slate-900 peer-checked:border-amber-400 text-xs font-bold transition select-none">
-                ✨ 光
-              </div>
-            </label>
-            <label class="cursor-pointer">
-              <input type="checkbox" name="civilization" value="闇" onchange="updateCivSelection()" class="peer sr-only">
-              <div class="text-center py-2 px-1 rounded-xl border border-slate-200 dark:border-slate-700 peer-checked:bg-purple-600 peer-checked:text-white peer-checked:border-purple-600 text-xs font-bold transition select-none">
-                💀 闇
-              </div>
-            </label>
-            <label class="cursor-pointer">
-              <input type="checkbox" name="civilization" value="ゼロ" onchange="updateCivSelection(true)" class="peer sr-only">
-              <div class="text-center py-2 px-1 rounded-xl border border-slate-200 dark:border-slate-700 peer-checked:bg-slate-600 peer-checked:text-white peer-checked:border-slate-600 text-xs font-bold transition select-none">
-                ⚪ ゼロ
-              </div>
-            </label>
-          </div>
-        </div>
-
-        <!-- カードタイプ & レアリティ -->
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">カードタイプ</label>
-            <select id="cardType" class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:border-indigo-500">
-              <option value="クリーチャー">クリーチャー</option>
-              <option value="呪文">呪文</option>
-              <option value="ツインパクト">ツインパクト</option>
-              <option value="タマシード">タマシード</option>
-              <option value="クロスギア">クロスギア</option>
-              <option value="城">城</option>
-              <option value="フィールド">フィールド</option>
-              <option value="ドラグハート">ドラグハート</option>
-              <option value="サイキック">サイキック</option>
-              <option value="GRクリーチャー">GRクリーチャー</option>
-              <option value="オレガ・オーラ">オレガ・オーラ</option>
-              <option value="その他">その他</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">レアリティ</label>
-            <input type="text" id="cardRarity" list="rarityList" placeholder="選択または入力 (例: SR)" 
-              class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:border-indigo-500">
-            <datalist id="rarityList">
-              <option value="OR (オーバーレア)">
-              <option value="DMR (ドリームレア)">
-              <option value="SR (スーパーレア)">
-              <option value="VR (ベリーレア)">
-              <option value="R (レア)">
-              <option value="U (アンコモン)">
-              <option value="C (コモン)">
-              <option value="秘 (シークレット)">
-              <option value="金トレジャー">
-              <option value="銀トレジャー">
-        <!-- 所持枚数 & デッキ必要枚数 -->
-        <div class="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
-          <!-- 所持枚数 -->
-          <div class="flex items-center justify-between">
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+    <div id="app" class="max-w-7xl mx-auto px-4 py-6">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-slate-800 pb-4">
             <div>
-              <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">現在の所持枚数</label>
-              <p id="statusAutoLabel" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
-                <i class="fa-solid fa-circle-check mr-1"></i>所持中（1枚以上）
-              </p>
+                <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                    デュエマ所持カード管理 <span class="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full">Pro</span>
+                </h1>
+                <p class="text-xs text-slate-400 mt-1">定番汎用カード対応・デッキ不足抽出システム</p>
             </div>
-            <div class="flex items-center gap-2">
-              <button type="button" onclick="adjustModalCount('cardCount', -1)" class="w-9 h-9 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-100 font-bold text-lg flex items-center justify-center transition">
-                -
-              </button>
-              <input type="number" id="cardCount" min="0" max="999" value="1" oninput="updateModalStatusLabel()" 
-                class="w-16 text-center py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-extrabold text-base outline-none">
-              <button type="button" onclick="adjustModalCount('cardCount', 1)" class="w-9 h-9 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-100 font-bold text-lg flex items-center justify-center transition">
-                +
-              </button>
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="openDeckModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 shadow-sm">
+                    📋 デッキから不足抽出
+                </button>
+                <button onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 shadow-sm">
+                    ＋ 新規カード追加
+                </button>
+                <button onclick="openDataModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-2 rounded-lg font-medium transition border border-slate-700">
+                    ⚙️ データ管理
+                </button>
             </div>
-          </div>
+        </header>
 
-          <hr class="border-slate-200 dark:border-slate-700">
-
-          <!-- デッキ必要枚数 -->
-          <div class="flex items-center justify-between">
-            <div>
-              <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">デッキ必要枚数 (欲しい総数)</label>
-              <p id="shortageAutoLabel" class="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
-                必要枚数未設定 (0枚)
-              </p>
+        <!-- 統計・ダッシュボード -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+            <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl shadow-sm">
+                <div class="text-xs text-slate-400">登録カード種</div>
+                <div id="stat-total" class="text-xl font-bold text-white mt-1">0</div>
             </div>
-            <div class="flex items-center gap-2">
-              <button type="button" onclick="adjustModalCount('cardNeeded', -1)" class="w-9 h-9 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-100 font-bold text-lg flex items-center justify-center transition">
-                -
-              </button>
-              <input type="number" id="cardNeeded" min="0" max="99" value="0" oninput="updateModalStatusLabel()" 
-                class="w-16 text-center py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-extrabold text-base outline-none">
-              <button type="button" onclick="adjustModalCount('cardNeeded', 1)" class="w-9 h-9 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-100 font-bold text-lg flex items-center justify-center transition">
-                +
-              </button>
+            <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl shadow-sm">
+                <div class="text-xs text-slate-400">所持済み</div>
+                <div id="stat-owned" class="text-xl font-bold text-emerald-400 mt-1">0</div>
             </div>
-          </div>
-        </div>
-
-        <!-- メモ -->
-        <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">メモ（デッキ採用予定・バージョン違いなど）</label>
-          <textarea id="cardMemo" rows="2" placeholder="例: 赤白アーマードデッキ用に4枚確保したい / ホイル仕様" 
-            class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 text-sm outline-none resize-none"></textarea>
-        </div>
-
-        <!-- 送信ボタン -->
-        <div class="pt-2 flex items-center justify-end gap-2">
-          <button type="button" onclick="closeCardModal()" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            キャンセル
-          </button>
-          <button type="submit" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-sm transition">
-            保存する
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ==================== デッキリスト一括照合・不足抽出モーダル ==================== -->
-  <div id="deckModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-    <div class="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden my-auto">
-      <!-- ヘッダー -->
-      <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-amber-50/50 dark:bg-amber-950/20">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center">
-            <i class="fa-solid fa-file-import"></i>
-          </div>
-          <div>
-            <h2 class="font-bold text-base sm:text-lg">デッキリストから不足カードを抽出</h2>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400">デッキメーカー等のテキストを貼り付けて手持ち枚数と自動照合します</p>
-          </div>
-        </div>
-        <button onclick="closeDeckModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
-      </div>
-
-      <!-- 本体 -->
-      <div class="p-5 space-y-4 max-h-[82vh] overflow-y-auto">
-        <!-- 入力エリア -->
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="text-xs font-bold text-slate-700 dark:text-slate-200">
-              デッキリスト（テキスト）を貼り付け
-            </label>
-            <button type="button" onclick="insertSampleDeckText()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
-              サンプルリストを入力
-            </button>
-          </div>
-          <textarea id="deckListInput" rows="5" oninput="parseAndPreviewDeckList()" 
-            placeholder="例:&#10;4 x フェアリー・ライフ&#10;4x 終末の時計 ザ・クロック&#10;2枚 ボルシャック・ドラゴン&#10;無双竜機ボルバルザーク ×3&#10;4 蒼き団長 ドギラゴン剣"
-            class="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-xs sm:text-sm font-mono outline-none resize-y"></textarea>
-          <p class="text-[11px] text-slate-400 mt-1">
-            ※「4 x カード名」「4枚 カード名」「カード名 ×4」「4 カード名」などの形式に自動対応。「メインデッキ」等の見出し行は自動スキップします。
-          </p>
-        </div>
-
-        <!-- 反映モード選択 -->
-        <div class="bg-slate-50 dark:bg-slate-800/70 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
-          <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">必要枚数の反映方法</label>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <label class="flex items-start gap-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 cursor-pointer hover:border-amber-500 transition">
-              <input type="radio" name="deckApplyMode" value="overwrite" checked onchange="parseAndPreviewDeckList()" class="mt-0.5 accent-amber-500">
-              <div>
-                <span class="block text-xs font-bold text-slate-800 dark:text-slate-100">このデッキの必要数で上書き</span>
-                <span class="block text-[11px] text-slate-500">既存カードの必要枚数を今回のリスト枚数に更新します（単一デッキ構築向け）</span>
-              </div>
-            </label>
-            <label class="flex items-start gap-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 cursor-pointer hover:border-amber-500 transition">
-              <input type="radio" name="deckApplyMode" value="add" onchange="parseAndPreviewDeckList()" class="mt-0.5 accent-amber-500">
-              <div>
-                <span class="block text-xs font-bold text-slate-800 dark:text-slate-100">既存の必要数に加算（合算）</span>
-                <span class="block text-[11px] text-slate-500">すでに設定されている必要枚数に今回の枚数を足します（複数デッキ同時作成向け）</span>
-              </div>
-            </label>
-          </div>
-        </div>
-
-        <!-- リアルタイム照合プレビュー -->
-        <div id="deckPreviewSection" class="hidden space-y-2.5">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <h3 class="text-xs font-bold text-slate-700 dark:text-slate-200">
-              <i class="fa-solid fa-magnifying-glass-chart text-amber-500 mr-1"></i>照合結果プレビュー（全 <span id="previewTotalSpecies">0</span> 種 / 計 <span id="previewTotalCards">0</span> 枚）
-            </h3>
-            <div class="flex items-center gap-2 text-[11px] font-bold">
-              <span class="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">充足: <span id="previewOkCount">0</span>種</span>
-              <span class="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">一部不足: <span id="previewPartialCount">0</span>種</span>
-              <span class="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">未所持新規: <span id="previewNewCount">0</span>種</span>
+            <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl shadow-sm">
+                <div class="text-xs text-slate-400">総所持枚数</div>
+                <div id="stat-quantity" class="text-xl font-bold text-indigo-400 mt-1">0 枚</div>
             </div>
-          </div>
-
-          <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden max-h-56 overflow-y-auto">
-            <table class="w-full text-left text-xs border-collapse">
-              <thead class="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 sticky top-0">
-                <tr>
-                  <th class="py-2 px-3">カード名</th>
-                  <th class="py-2 px-2 text-center">所持</th>
-                  <th class="py-2 px-2 text-center">必要(反映後)</th>
-                  <th class="py-2 px-3 text-right">不足状況</th>
-                </tr>
-              </thead>
-              <tbody id="deckPreviewBody" class="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
-                <!-- JSで照合行を生成 -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- フッターボタン -->
-        <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
-          <button type="button" onclick="closeDeckModal()" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            キャンセル
-          </button>
-          <button type="button" id="applyDeckListBtn" onclick="applyDeckListToVault()" disabled class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold shadow-sm transition flex items-center gap-1.5">
-            <i class="fa-solid fa-check"></i>
-            <span>不足分をリストに反映する</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== データ管理・バックアップモーダル ==================== -->
-  <div id="dataModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-    <div class="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden my-auto">
-      <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-        <h2 class="font-bold text-lg"><i class="fa-solid fa-database text-indigo-500 mr-2"></i>データ管理・バックアップ</h2>
-        <button onclick="closeDataModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
-      </div>
-
-      <div class="p-5 space-y-5 text-sm">
-        <!-- エクスポート -->
-        <div class="space-y-2">
-          <h3 class="font-bold text-slate-800 dark:text-slate-200">1. データのエクスポート（書き出し）</h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400">PC・スマホ間のデータ移行やバックアップ用にファイルをダウンロードします。</p>
-          <div class="grid grid-cols-2 gap-2.5 pt-1">
-            <button onclick="exportJSON()" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 font-bold text-xs transition">
-              <i class="fa-solid fa-file-code"></i> JSON形式で保存
-            </button>
-            <button onclick="exportCSV()" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 font-bold text-xs transition">
-              <i class="fa-solid fa-file-csv"></i> CSV形式で保存
-            </button>
-          </div>
-        </div>
-
-        <hr class="border-slate-200 dark:border-slate-800">
-
-        <!-- インポート -->
-        <div class="space-y-2">
-          <h3 class="font-bold text-slate-800 dark:text-slate-200">2. データのインポート（読み込み）</h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400">書き出したJSONファイルを選択してデータを復元・追加します。</p>
-          <label class="mt-1 flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <div class="flex flex-col items-center justify-center pt-2 pb-3">
-              <i class="fa-solid fa-cloud-arrow-up text-xl text-slate-400 mb-1"></i>
-              <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">JSONファイルを選択して復元</p>
+            <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl shadow-sm">
+                <div class="text-xs text-slate-400">不足カード種</div>
+                <div id="stat-shortage" class="text-xl font-bold text-rose-400 mt-1">0</div>
             </div>
-            <input type="file" id="importFileInput" accept=".json" onchange="importJSON(event)" class="hidden">
-          </label>
-        </div>
-
-        <hr class="border-slate-200 dark:border-slate-800">
-
-        <!-- リセット・一括削除 -->
-        <div class="space-y-2">
-          <h3 class="font-bold text-slate-800 dark:text-slate-200">3. 定番汎用カードセット・初期化</h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400">環境でよく使われる定番の汎用カード50種をリストに追加、または初期状態にリセットします。</p>
-          <div class="space-y-2 pt-1">
-            <button onclick="addMissingPresetCards()" class="w-full py-2.5 px-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100 font-bold text-xs flex items-center justify-center gap-1.5 transition">
-              <i class="fa-solid fa-wand-magic-sparkles"></i> 定番汎用カード50種を追加（未登録分のみマージ）
-            </button>
-            <div class="grid grid-cols-2 gap-2.5">
-              <button onclick="confirmAction('sample')" class="py-2 px-3 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold text-xs transition">
-                初期50種にリセット
-              </button>
-              <button onclick="confirmAction('clearAll')" class="py-2 px-3 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 hover:bg-red-100 font-semibold text-xs transition">
-                全データを完全削除
-              </button>
+            <div class="col-span-2 md:col-span-1 bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl shadow-sm">
+                <div class="text-xs text-slate-400">総不足枚数</div>
+                <div id="stat-shortage-qty" class="text-xl font-bold text-amber-400 mt-1">0 枚</div>
             </div>
-          </div>
         </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- ==================== カスタム確認ダイアログ ==================== -->
-  <div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm border border-slate-200 dark:border-slate-800 shadow-2xl p-5 space-y-4">
-      <div class="flex items-start gap-3">
-        <div class="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 text-lg">
-          <i class="fa-solid fa-triangle-exclamation"></i>
-        </div>
-        <div>
-          <h3 id="confirmTitle" class="font-bold text-base">確認</h3>
-          <p id="confirmMessage" class="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed"></p>
-        </div>
-      </div>
-      <div class="flex justify-end gap-2 pt-2">
-        <button onclick="closeConfirmModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition">
-          キャンセル
-        </button>
-        <button id="confirmExecuteBtn" class="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white transition">
-          実行する
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- トースト通知 -->
-  <div id="toast" class="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-opacity duration-300">
-    <div class="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2.5 rounded-full shadow-lg text-xs sm:text-sm font-bold flex items-center gap-2">
-      <i class="fa-solid fa-circle-check text-emerald-400 dark:text-emerald-600"></i>
-      <span id="toastMessage">保存しました</span>
-    </div>
-  </div>
-
-  <!-- ==================== JavaScript ロジック ==================== -->
-  <script>
-    // ストレージキー
-    const STORAGE_KEY = 'duema_card_vault_data_v1';
-    const THEME_KEY = 'duema_card_vault_theme';
-
-    // 定番汎用カード50種プリセットデータ（すべて初期所持0枚・必要0枚）
-    const PRESET_STAPLE_CARDS = [
-      // --- 自然文明（ブースト・マナ回収・メタ） ---
-      { id: 'preset-01', name: 'フェアリー・Re:ライフ', civilizations: ['自然'], type: '呪文', cost: 2, power: '', rarity: 'C', setCode: 'DMRP-17', count: 0, needed: 0, memo: 'G・ストライク持ち初動マナブースト', createdAt: 1700000050000 },
-      { id: 'preset-02', name: 'フェアリー・ライフ', civilizations: ['自然'], type: '呪文', cost: 2, power: '', rarity: 'C', setCode: 'DM-06', count: 0, needed: 0, memo: 'S・トリガー持ち元祖2コストブースト', createdAt: 1700000049000 },
-      { id: 'preset-03', name: '地龍神の魔陣', civilizations: ['水', '自然'], type: '呪文', cost: 2, power: '', rarity: 'C', setCode: 'DMRP-17', count: 0, needed: 0, memo: 'G・ストライク持ち2コスト初動（ブーストor回収）', createdAt: 1700000048000 },
-      { id: 'preset-04', name: '天災 デドダム', civilizations: ['水', '自然', '闇'], type: 'クリーチャー', cost: 3, power: '3000', rarity: 'R', setCode: 'DMRP-10', count: 0, needed: 0, memo: 'アナカラー基盤最強の3コスト初動リソース', createdAt: 1700000047000 },
-      { id: 'preset-05', name: '豊潤フォージュン', civilizations: ['自然'], type: '呪文', cost: 3, power: '', rarity: 'U', setCode: 'DM23-RP3', count: 0, needed: 0, memo: '3コスト2ブースト/条件付き手札補充', createdAt: 1700000046000 },
-      { id: 'preset-06', name: 'とこしえの超人', civilizations: ['自然'], type: 'クリーチャー', cost: 1, power: '4000', rarity: 'U', setCode: 'DMRP-17', count: 0, needed: 0, memo: '手札以外からの踏み倒しを許さない1コストメタ', createdAt: 1700000045000 },
-      { id: 'preset-07', name: 'キャディ・ビートル', civilizations: ['自然'], type: 'クリーチャー', cost: 2, power: '4000', rarity: 'R', setCode: 'DM22-RP1', count: 0, needed: 0, memo: 'マナ以下のコスト踏み倒しメタ＆マナ送り', createdAt: 1700000044000 },
-      { id: 'preset-08', name: 'お清めシャラップ / 宝船の輝き', civilizations: ['自然'], type: 'ツインパクト', cost: 3, power: '', rarity: 'U', setCode: 'DMRP-12', count: 0, needed: 0, memo: '墓地メタ＆マナ加速を兼ねる汎用ツインパクト', createdAt: 1700000043000 },
-      { id: 'preset-09', name: '環嵐！ホールインワン・ヘラクレス', civilizations: ['水', '自然'], type: 'クリーチャー', cost: 4, power: '6000', rarity: 'VR', setCode: 'DMRP-20', count: 0, needed: 0, memo: '墓地リセット＆マナ召喚付与', createdAt: 1700000042000 },
-      { id: 'preset-10', name: '母なる星域', civilizations: ['自然'], type: '呪文', cost: 3, power: '', rarity: 'U', setCode: 'DM-30', count: 0, needed: 0, memo: 'マナからの進化クリーチャー踏み倒し', createdAt: 1700000041000 },
-
-      // --- 水文明（ドロー・トリガー・メタ・大型フィニッシャー） ---
-      { id: 'preset-11', name: '終末の時計 ザ・クロック', civilizations: ['水'], type: 'クリーチャー', cost: 3, power: '3000', rarity: 'R', setCode: 'DMR-09', count: 0, needed: 0, memo: 'S・トリガーで強制ターン終了させる最強防御札', createdAt: 1700000040000 },
-      { id: 'preset-12', name: '終末縫合王 ザ=キラー・キーナリー', civilizations: ['水', '自然', '闇'], type: 'クリーチャー', cost: 10, power: '14500', rarity: 'SR', setCode: 'DM23-BD1', count: 0, needed: 0, memo: '相手の登場時能力封殺＆リアニメイト持ち大型', createdAt: 1700000039000 },
-      { id: 'preset-13', name: '飛翔龍 5000VT', civilizations: ['水'], type: 'クリーチャー', cost: 8, power: '12000', rarity: 'VIC', setCode: 'DM23-RP2', count: 0, needed: 0, memo: 'コスト軽減＆パワー5000以下全バウンス＋ロック', createdAt: 1700000038000 },
-      { id: 'preset-14', name: 'ブルー・インパルス / 「真実を見極めよ、ジョニー！」', civilizations: ['水'], type: 'ツインパクト', cost: 10, power: '12000', rarity: 'SR', setCode: 'DM23-BD7', count: 0, needed: 0, memo: '相手ターン踏み倒し＆全体バウンスS・トリガー', createdAt: 1700000037000 },
-      { id: 'preset-15', name: '異端流し オニカマス', civilizations: ['水'], type: 'クリーチャー', cost: 2, power: '2000', rarity: 'U', setCode: 'DMRP-01', count: 0, needed: 0, memo: '選ばれない2コスト踏み倒しメタ', createdAt: 1700000036000 },
-      { id: 'preset-16', name: '同期の妖精 / ド浮きの動悸', civilizations: ['水'], type: 'ツインパクト', cost: 2, power: '2000', rarity: 'R', setCode: 'DM23-RP3', count: 0, needed: 0, memo: '攻撃・効果の対象引き寄せ＆2コストトリガー', createdAt: 1700000035000 },
-      { id: 'preset-17', name: 'ストリーミング・シェイパー', civilizations: ['水'], type: '呪文', cost: 3, power: '', rarity: 'R', setCode: 'DM-03', count: 0, needed: 0, memo: '殿堂入りの強力手札補充呪文', createdAt: 1700000034000 },
-      { id: 'preset-18', name: 'サイバー・ブレイン', civilizations: ['水'], type: '呪文', cost: 4, power: '', rarity: 'R', setCode: 'DM-02', count: 0, needed: 0, memo: 'S・トリガー付き3枚ドロー呪文', createdAt: 1700000033000 },
-      { id: 'preset-19', name: '理想と平和の決断', civilizations: ['水', '光'], type: '呪文', cost: 4, power: '', rarity: 'SR', setCode: 'DM24-RP2', count: 0, needed: 0, memo: 'パーフェクト・アルカディア（盾追加・ドロー・除去）', createdAt: 1700000032000 },
-      { id: 'preset-20', name: 'ボン・キゴマイム / ♪やせ蛙 ラッキーナンバー ここにあり', civilizations: ['水'], type: 'ツインパクト', cost: 3, power: '3000', rarity: 'VR', setCode: 'DM23-RP1', count: 0, needed: 0, memo: '召喚酔い強制付与＆ドロー置き換えメタ', createdAt: 1700000031000 },
-
-      // --- 闇文明（ハンデス・蘇生・除去・リソース） ---
-      { id: 'preset-21', name: 'アーテル・ゴルギーニ', civilizations: ['闇'], type: 'クリーチャー', cost: 5, power: '5000', rarity: 'SR', setCode: 'DM23-RP3', count: 0, needed: 0, memo: '4以下蘇生・墓地肥やし・マイナス除去の万能札', createdAt: 1700000030000 },
-      { id: 'preset-22', name: '秩序の意志', civilizations: ['闇'], type: '呪文', cost: 3, power: '', rarity: 'R', setCode: 'DMRP-10', count: 0, needed: 0, memo: 'S・バックで手札から唱えられる封印除去', createdAt: 1700000029000 },
-      { id: 'preset-23', name: '絶望と反魂と滅殺の決断', civilizations: ['闇'], type: '呪文', cost: 5, power: '', rarity: 'SR', setCode: 'DMRP-12', count: 0, needed: 0, memo: 'パーフェクト・ダークネス（墓地から唱えられる万能呪文）', createdAt: 1700000028000 },
-      { id: 'preset-24', name: '特攻人形ジェニー', civilizations: ['闇'], type: 'クリーチャー', cost: 2, power: '1000', rarity: 'U', setCode: 'DM-15', count: 0, needed: 0, memo: '自壊ランダムハンデス基本パーツ', createdAt: 1700000027000 },
-      { id: 'preset-25', name: '学校男 / ゾンビ・カーニバル', civilizations: ['闇'], type: 'ツインパクト', cost: 2, power: '8000', rarity: 'R', setCode: 'DM22-EX1', count: 0, needed: 0, memo: '2コスト除去＆種族回収ツインパクト', createdAt: 1700000026000 },
-      { id: 'preset-26', name: '深淵の壊炉 マーダン=ロウ', civilizations: ['闇'], type: 'クリーチャー', cost: 4, power: '5000', rarity: 'SR', setCode: 'DM22-RP2', count: 0, needed: 0, memo: 'ピーピングハンデス＆相手墓地能力コピー', createdAt: 1700000025000 },
-      { id: 'preset-27', name: '百鬼の邪王門', civilizations: ['火', '闇'], type: '呪文', cost: 6, power: '', rarity: 'R', setCode: 'DMRP-15', count: 0, needed: 0, memo: '鬼エンドで手札から踏み倒しカウンター', createdAt: 1700000024000 },
-      { id: 'preset-28', name: '一王二命三眼槍', civilizations: ['火', '闇'], type: 'クリーチャー', cost: 5, power: '6000', rarity: 'SR', setCode: 'DMRP-16', count: 0, needed: 0, memo: 'バラド・ヴィ・ナ・シューラ（敗北回避手札誘発）', createdAt: 1700000023000 },
-      { id: 'preset-29', name: '灰燼と天門の儀式', civilizations: ['光', '闇'], type: '呪文', cost: 5, power: '', rarity: 'VR', setCode: 'DMRP-18', count: 0, needed: 0, memo: 'ヘブニアッシュ・サイン（S・トリガー墓地蘇生）', createdAt: 1700000022000 },
-      { id: 'preset-30', name: 'ブレイン・スラッシュ', civilizations: ['水', '闇'], type: '呪文', cost: 6, power: '', rarity: 'R', setCode: 'DM22-EX1', count: 0, needed: 0, memo: 'S・トリガー付きドロー＆墓地リアニメイト', createdAt: 1700000021000 },
-
-      // --- 光文明（メタ・防御トリガー・天門パーツ） ---
-      { id: 'preset-31', name: '奇石 ミクセル / ジャミング・チャフ', civilizations: ['光'], type: 'ツインパクト', cost: 2, power: '2000', rarity: 'R', setCode: 'DMRP-05', count: 0, needed: 0, memo: '2コストメタ＆呪文ロックフィニッシュ札', createdAt: 1700000020000 },
-      { id: 'preset-32', name: '赤い稲妻 テスタ・ロッサ', civilizations: ['火'], type: 'クリーチャー', cost: 2, power: '2000', rarity: 'R', setCode: 'DMRP-17', count: 0, needed: 0, memo: '召喚以外の踏み倒し置換メタ', createdAt: 1700000019000 },
-      { id: 'preset-33', name: 'ヘブンズ・ゲート', civilizations: ['光'], type: '呪文', cost: 6, power: '', rarity: 'R', setCode: 'DM-15', count: 0, needed: 0, memo: '光のブロッカー2体踏み倒しS・トリガー', createdAt: 1700000018000 },
-      { id: 'preset-34', name: '闘門の精霊ウェルキウス', civilizations: ['光'], type: 'クリーチャー', cost: 8, power: '10500', rarity: 'VR', setCode: 'DMRP-15', count: 0, needed: 0, memo: 'バトル勝利時ドロー＆ブロッカー展開', createdAt: 1700000017000 },
-      { id: 'preset-35', name: '光開の精霊サイフォゲート', civilizations: ['光'], type: 'クリーチャー', cost: 6, power: '6500', rarity: 'R', setCode: 'DM24-RP1', count: 0, needed: 0, memo: 'S・トリガー持ちブロッカー展開クリーチャー', createdAt: 1700000016000 },
-      { id: 'preset-36', name: 'DG-パルテノン 〜龍の創り出される地〜', civilizations: ['ゼロ'], type: 'フィールド', cost: 2, power: '', rarity: 'R', setCode: 'DMRP-14', count: 0, needed: 0, memo: '1ターン中の展開・呪文回数を3回に制限するメタ', createdAt: 1700000015000 },
-      { id: 'preset-37', name: '音卿の精霊龍 ラフルル・ラブ / 「未来から来る、だからミラクル」', civilizations: ['水', '光'], type: 'ツインパクト', cost: 7, power: '7500', rarity: 'SR', setCode: 'DM21-EX1', count: 0, needed: 0, memo: '革命チェンジで相手の呪文を完全ロック', createdAt: 1700000014000 },
-      { id: 'preset-38', name: '時の法皇 ミラダンテXII', civilizations: ['水', '光'], type: 'クリーチャー', cost: 8, power: '12000', rarity: 'LEG', setCode: 'DMR-22', count: 0, needed: 0, memo: 'コスト7以下の召喚を封じる殿堂フィニッシャー', createdAt: 1700000013000 },
-      { id: 'preset-39', name: '閃光の神官 ヴェルベット / フェアリー・パワー', civilizations: ['自然', '光'], type: 'ツインパクト', cost: 5, power: '6500', rarity: 'R', setCode: 'DMRP-15', count: 0, needed: 0, memo: 'マナブースト＆相手タップインブロッカー', createdAt: 1700000012000 },
-      { id: 'preset-40', name: 'ホーリー・スパーク', civilizations: ['光'], type: '呪文', cost: 6, power: '', rarity: 'R', setCode: 'DM-01', count: 0, needed: 0, memo: '相手クリーチャー全タップS・トリガー', createdAt: 1700000011000 },
-
-      // --- 火文明・多色ドラゴン・汎用フィニッシャー ---
-      { id: 'preset-41', name: '切札勝太&カツキング ー熱血の物語ー', civilizations: ['火', '水', '自然'], type: 'クリーチャー', cost: 5, power: '5000', rarity: 'DSR', setCode: 'DM21-EX1', count: 0, needed: 0, memo: '5枚サーチ・バウンス・マッハファイター・革命2の万能札', createdAt: 1700000010000 },
-      { id: 'preset-42', name: '流星のガイアッシュ・カイザー', civilizations: ['水', '自然'], type: 'クリーチャー', cost: 6, power: '8000', rarity: 'SR', setCode: 'DM21-EX1', count: 0, needed: 0, memo: '踏み倒し反応着地＆10コスト軽減のドラゴン基盤', createdAt: 1700000009000 },
-      { id: 'preset-43', name: '蒼き団長 ドギラゴン剣', civilizations: ['火', '自然'], type: 'クリーチャー', cost: 8, power: '13000', rarity: 'LEG', setCode: 'DMR-21', count: 0, needed: 0, memo: 'ファイナル革命で多色踏み倒し・殿堂レジェンド', createdAt: 1700000008000 },
-      { id: 'preset-44', name: '蒼き守護神 ドギラゴン閃', civilizations: ['火', '光'], type: 'クリーチャー', cost: 8, power: '13000', rarity: 'LEG', setCode: 'DMRP-16', count: 0, needed: 0, memo: 'ファイナル革命で山札から多色展開', createdAt: 1700000007000 },
-      { id: 'preset-45', name: '頂上連結 ロッド・ゾージア5th', civilizations: ['火', '光'], type: 'クリーチャー', cost: 7, power: '10500', rarity: 'SR', setCode: 'DM23-EX2', count: 0, needed: 0, memo: 'EXライフ・除去・相手1体制限ロック', createdAt: 1700000006000 },
-      { id: 'preset-46', name: '王道の革命 ドギラゴン', civilizations: ['火', '自然', '光'], type: 'クリーチャー', cost: 5, power: '9000', rarity: 'SR', setCode: 'DM24-BD1', count: 0, needed: 0, memo: 'マナ回収＆革命2カウンターを持つリース基盤', createdAt: 1700000005000 },
-      { id: 'preset-47', name: 'ボルシャック・栄光・ルピア', civilizations: ['火', '自然'], type: 'クリーチャー', cost: 3, power: '2000', rarity: 'C', setCode: 'DM21-EX1', count: 0, needed: 0, memo: '最大2マナブーストのドラゴンデッキ必須初動', createdAt: 1700000004000 },
-      { id: 'preset-48', name: 'メンデルスゾーン', civilizations: ['火', '自然'], type: '呪文', cost: 2, power: '', rarity: 'R', setCode: 'DMX-12', count: 0, needed: 0, memo: 'ドラゴンデッキ専用の2コスト2ブースト呪文', createdAt: 1700000003000 },
-      { id: 'preset-49', name: '勝利龍装 クラッシュ“覇道”', civilizations: ['火'], type: 'クリーチャー', cost: 10, power: '11000', rarity: 'SR', setCode: 'DMRP-07', count: 0, needed: 0, memo: '破壊時追加ターン獲得のビートフィニッシャー', createdAt: 1700000002000 },
-      { id: 'preset-50', name: '禁断竜王 Vol-Val-8', civilizations: ['火', '水', '自然'], type: 'クリーチャー', cost: 9, power: '15000', rarity: 'KGM', setCode: 'DMRP-19', count: 0, needed: 0, memo: 'ジャストダイバー・4体破壊でEXターン獲得', createdAt: 1700000001000 }
-    ];
-
-    // アプリ状態
-    let cards = [];
-    let currentStatusFilter = 'all'; // 'all' | 'owned' | 'unowned' | 'shortage'
-    let currentCivFilter = 'all';    // 'all' | '火' | '水' | '自然' | '光' | '闇' | '多色' | 'ゼロ' | '未設定'
-    let currentViewMode = 'grid';    // 'grid' | 'table'
-    let pendingConfirmCallback = null;
-    let parsedDeckItems = [];        // デッキ照合モーダル用パース済みデータ
-    // テーマ（ダーク/ライト）初期化
-    function initTheme() {
-      const savedTheme = localStorage.getItem(THEME_KEY);
-      if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    }
-
-    function toggleDarkMode() {
-      const html = document.documentElement;
-      html.classList.toggle('dark');
-      localStorage.setItem(THEME_KEY, html.classList.contains('dark') ? 'dark' : 'light');
-    }
-
-    // データ読み込み
-    function loadCards() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw === null) {
-          // 初回アクセス時は定番汎用カード50種を初期搭載（すべて所持0枚・必要0枚）
-          cards = PRESET_STAPLE_CARDS.map(c => ({ ...c }));
-          saveToStorage();
-        } else {
-          const parsed = JSON.parse(raw) || [];
-          // 既存データ互換性確保（neededフィールド補完）
-          cards = parsed.map(c => ({
-            ...c,
-            count: Number(c.count) || 0,
-            needed: Number(c.needed) || 0
-          }));
-        }
-      } catch (e) {
-        console.error('データの読み込みに失敗しました:', e);
-        cards = [];
-      }
-    }
-
-    // ストレージ保存
-    function saveToStorage() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
-        updateDashboard();
-      } catch (e) {
-        showToast('保存容量の制限により保存できませんでした');
-      }
-    }
-
-    // イベントリスナー登録
-    function setupEventListeners() {
-      const searchInput = document.getElementById('searchInput');
-      const clearBtn = document.getElementById('clearSearchBtn');
-
-      searchInput.addEventListener('input', () => {
-        clearBtn.classList.toggle('hidden', searchInput.value.length === 0);
-        renderCards();
-      });
-    }
-
-    function clearSearch() {
-      const searchInput = document.getElementById('searchInput');
-      searchInput.value = '';
-      document.getElementById('clearSearchBtn').classList.add('hidden');
-      renderCards();
-    }
-
-    // ダッシュボード集計更新
-    function updateDashboard() {
-      const totalTypes = cards.length;
-      const totalCount = cards.reduce((sum, c) => sum + (Number(c.count) || 0), 0);
-      const unownedTypes = cards.filter(c => (Number(c.count) || 0) === 0).length;
-      const totalShortage = cards.reduce((sum, c) => {
-        const owned = Number(c.count) || 0;
-        const needed = Number(c.needed) || 0;
-        return sum + Math.max(0, needed - owned);
-      }, 0);
-
-      document.getElementById('statTotalTypes').textContent = totalTypes.toLocaleString();
-      document.getElementById('statTotalCount').textContent = totalCount.toLocaleString();
-      document.getElementById('statUnownedTypes').textContent = unownedTypes.toLocaleString();
-      document.getElementById('statTotalShortage').textContent = totalShortage.toLocaleString();
-
-      // 必要枚数が設定されているカードが1枚でもあればリセットボタン表示
-      const hasAnyNeeded = cards.some(c => (Number(c.needed) || 0) > 0);
-      document.getElementById('clearAllNeededBtn').classList.toggle('hidden', !hasAnyNeeded);
-    }
-
-    // フィルタ操作
-    function setStatusFilter(status) {
-      currentStatusFilter = status;
-      document.querySelectorAll('.status-filter-btn').forEach(btn => {
-        const isSelected = btn.dataset.status === status;
-        if (isSelected) {
-          if (status === 'shortage') {
-            btn.className = 'status-filter-btn flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition bg-rose-600 text-white shadow-sm whitespace-nowrap';
-          } else {
-            btn.className = 'status-filter-btn flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm whitespace-nowrap';
-          }
-        } else {
-          if (btn.dataset.status === 'shortage') {
-            btn.className = 'status-filter-btn flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition text-rose-600 dark:text-rose-400 hover:text-rose-700 whitespace-nowrap';
-          } else {
-            btn.className = 'status-filter-btn flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white whitespace-nowrap';
-          }
-        }
-      });
-      renderCards();
-    }
-
-    function toggleCivFilter(civ) {
-      currentCivFilter = (currentCivFilter === civ && civ !== 'all') ? 'all' : civ;
-      document.querySelectorAll('.civ-filter-btn').forEach(btn => {
-        const isSelected = btn.dataset.civ === currentCivFilter;
-        if (isSelected) {
-          btn.classList.add('ring-2', 'ring-offset-1', 'ring-indigo-500', 'dark:ring-offset-slate-900', 'scale-105');
-        } else {
-          btn.classList.remove('ring-2', 'ring-offset-1', 'ring-indigo-500', 'dark:ring-offset-slate-900', 'scale-105');
-        }
-      });
-      renderCards();
-    }
-
-    function resetAllFilters() {
-      document.getElementById('searchInput').value = '';
-      document.getElementById('clearSearchBtn').classList.add('hidden');
-      setStatusFilter('all');
-      toggleCivFilter('all');
-    }
-
-    // 表示モード切替（PC）
-    function setViewMode(mode) {
-      currentViewMode = mode;
-      const gridBtn = document.getElementById('viewGridBtn');
-      const tableBtn = document.getElementById('viewTableBtn');
-
-      if (mode === 'grid') {
-        gridBtn.className = 'p-2 rounded-lg bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm transition';
-        tableBtn.className = 'p-2 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition';
-      } else {
-        tableBtn.className = 'p-2 rounded-lg bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm transition';
-        gridBtn.className = 'p-2 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition';
-      }
-      renderCards();
-    }
-
-    // 文明バッジHTML生成
-    function getCivilizationBadgeHTML(civs) {
-      if (!civs || civs.length === 0 || (civs.length === 1 && civs[0] === '未設定')) {
-        return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400">❓ 文明未設定</span>`;
-      }
-
-      if (civs.length === 1 && civs[0] === 'ゼロ') {
-        return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">⚪ ゼロ</span>`;
-      }
-
-      if (civs.length > 1) {
-        const icons = civs.map(c => getCivEmoji(c)).join('');
-        return `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold rainbow-badge shadow-xs">${icons} 多色 (${civs.join('/')})</span>`;
-      }
-
-      const civ = civs[0];
-      const styles = {
-        '火': 'bg-red-100 dark:bg-red-950/70 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/60',
-        '水': 'bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60',
-        '自然': 'bg-green-100 dark:bg-green-950/70 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800/60',
-        '光': 'bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60',
-        '闇': 'bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60',
-      };
-      return `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${styles[civ] || ''}">${getCivEmoji(civ)} ${civ}</span>`;
-    }
-
-    function getCivEmoji(civ) {
-      const map = { '火': '🔥', '水': '💧', '自然': '🌿', '光': '✨', '闇': '💀', 'ゼロ': '⚪', '未設定': '❓' };
-      return map[civ] || '';
-    }
-
-    // カードの上部アクセントカラー取得
-    function getCardTopBorderClass(civs) {
-      if (!civs || civs.length === 0 || (civs.length === 1 && (civs[0] === 'ゼロ' || civs[0] === '未設定'))) return 'border-t-slate-400';
-      if (civs.length > 1) return 'border-t-amber-500';
-      const map = {
-        '火': 'border-t-red-500',
-        '水': 'border-t-blue-500',
-        '自然': 'border-t-green-500',
-        '光': 'border-t-amber-400',
-        '闇': 'border-t-purple-600'
-      };
-      return map[civs[0]] || 'border-t-slate-400';
-    }
-
-    // フィルタリング＆ソート＆描画
-    function renderCards() {
-      updateDashboard();
-
-      const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
-      const sortBy = document.getElementById('sortSelect').value;
-
-      // 1. フィルタリング
-      let filtered = cards.filter(card => {
-        const count = Number(card.count) || 0;
-        const needed = Number(card.needed) || 0;
-        const shortage = Math.max(0, needed - count);
-
-        // 所持状態フィルタ
-        if (currentStatusFilter === 'owned' && count <= 0) return false;
-        // 「未所持・不足(欲しい)」タブ: 0枚の未所持 OR デッキ必要枚数に足りていないカード
-        if (currentStatusFilter === 'unowned' && !(count === 0 || shortage > 0)) return false;
-        // 「不足のみ」タブ: デッキ必要枚数に足りていないカードのみ
-        if (currentStatusFilter === 'shortage' && shortage <= 0) return false;
-
-        // 文明フィルタ
-        const civs = card.civilizations || ['未設定'];
-        if (currentCivFilter !== 'all') {
-          if (currentCivFilter === '多色') {
-            if (civs.length <= 1) return false;
-          } else if (currentCivFilter === '未設定') {
-            if (!(civs.length === 0 || (civs.length === 1 && civs[0] === '未設定'))) return false;
-          } else if (currentCivFilter === 'ゼロ') {
-            if (!(civs.length === 1 && civs[0] === 'ゼロ')) return false;
-          } else {
-            if (!civs.includes(currentCivFilter)) return false;
-          }
-        }
-
-        // キーワード検索（カード名、メモ、収録弾、レアリティ）
-        if (keyword) {
-          const targetText = `${card.name} ${card.memo || ''} ${card.setCode || ''} ${card.rarity || ''}`.toLowerCase();
-          if (!targetText.includes(keyword)) return false;
-        }
-
-        return true;
-      });
-
-      // 2. ソート
-      filtered.sort((a, b) => {
-        const shortA = Math.max(0, (Number(a.needed) || 0) - (Number(a.count) || 0));
-        const shortB = Math.max(0, (Number(b.needed) || 0) - (Number(b.count) || 0));
-
-        switch (sortBy) {
-          case 'shortage_desc':
-            if (shortB !== shortA) return shortB - shortA;
-            return (b.createdAt || 0) - (a.createdAt || 0);
-          case 'oldest':
-            return (a.createdAt || 0) - (b.createdAt || 0);
-          case 'name_asc':
-            return a.name.localeCompare(b.name, 'ja');
-          case 'cost_asc':
-            return (Number(a.cost) || 0) - (Number(b.cost) || 0);
-          case 'cost_desc':
-            return (Number(b.cost) || 0) - (Number(a.cost) || 0);
-          case 'count_desc':
-            return (Number(b.count) || 0) - (Number(a.count) || 0);
-          case 'count_asc':
-            return (Number(a.count) || 0) - (Number(b.count) || 0);
-          case 'newest':
-          default:
-            return (b.createdAt || 0) - (a.createdAt || 0);
-        }
-      });
-
-      // 件数表示とリセットボタン制御
-      document.getElementById('filteredCount').textContent = filtered.length;
-      const isFiltering = keyword !== '' || currentStatusFilter !== 'all' || currentCivFilter !== 'all';
-      document.getElementById('resetFilterBtn').classList.toggle('hidden', !isFiltering);
-
-      const gridContainer = document.getElementById('cardGridContainer');
-      const tableContainer = document.getElementById('cardTableContainer');
-      const emptyState = document.getElementById('emptyState');
-
-      if (filtered.length === 0) {
-        gridContainer.classList.add('hidden');
-        tableContainer.classList.add('hidden');
-        emptyState.classList.remove('hidden');
-        return;
-      }
-
-      emptyState.classList.add('hidden');
-
-      // 3. 描画（グリッド or テーブル）
-      if (currentViewMode === 'table' && window.innerWidth >= 1024) {
-        gridContainer.classList.add('hidden');
-        tableContainer.classList.remove('hidden');
-        renderTableRows(filtered);
-      } else {
-        tableContainer.classList.add('hidden');
-        gridContainer.classList.remove('hidden');
-        renderGridCards(filtered);
-      }
-    }
-
-    // グリッドカード描画
-    function renderGridCards(list) {
-      const container = document.getElementById('cardGridContainer');
-      container.innerHTML = list.map(card => {
-        const count = Number(card.count) || 0;
-        const needed = Number(card.needed) || 0;
-        const shortage = Math.max(0, needed - count);
-        const isOwned = count > 0;
-        const topBorder = getCardTopBorderClass(card.civilizations);
-
-        // ステータスバッジの構築
-        let statusBadgesHTML = '';
-        if (shortage > 0) {
-          statusBadgesHTML = `
-            <div class="flex flex-wrap items-center gap-1">
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-rose-100 dark:bg-rose-950/90 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                <i class="fa-solid fa-circle-exclamation"></i> あと${shortage}枚不足
-              </span>
-              <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400">(必要:${needed})</span>
-            </div>
-          `;
-        } else if (needed > 0 && count >= needed) {
-          statusBadgesHTML = `
-            <div class="flex flex-wrap items-center gap-1">
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300">
-                <i class="fa-solid fa-check-double"></i> 必要数達成 (${count}/${needed})
-              </span>
-            </div>
-          `;
-        } else if (isOwned) {
-          statusBadgesHTML = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300"><i class="fa-solid fa-check"></i> 所持</span>`;
-        } else {
-          statusBadgesHTML = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300"><i class="fa-regular fa-star"></i> 未所持</span>`;
-        }
-
-        return `
-          <div class="card-hover bg-white dark:bg-slate-900 rounded-2xl border ${shortage > 0 ? 'border-rose-300 dark:border-rose-900/70' : 'border-slate-200 dark:border-slate-800'} border-t-4 ${topBorder} shadow-sm p-4 flex flex-col justify-between ${!isOwned && shortage === 0 ? 'opacity-85 bg-slate-50/70 dark:bg-slate-900/60' : ''}">
-            <div>
-              <!-- 上部: 所持・不足バッジ & コスト・レアリティ -->
-              <div class="flex items-start justify-between gap-2 mb-2">
-                ${statusBadgesHTML}
-                <div class="flex items-center gap-1.5 text-xs font-bold shrink-0">
-                  ${card.rarity ? `<span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">${escapeHTML(card.rarity.split(' ')[0])}</span>` : ''}
-                  ${card.cost !== '' && card.cost !== null && card.cost !== undefined ? `<span class="w-6 h-6 rounded-full bg-slate-800 dark:bg-slate-700 text-white flex items-center justify-center text-xs shadow-xs" title="コスト">${Number(card.cost)}</span>` : ''}
+        <!-- フィルター・検索バー -->
+        <div class="bg-slate-800/80 border border-slate-700/60 p-4 rounded-xl mb-6 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <div class="flex bg-slate-900 p-1 rounded-lg border border-slate-700 w-full md:w-auto overflow-x-auto">
+                    <button onclick="setTab('all')" id="tab-all" class="px-3 py-1.5 text-xs font-medium rounded-md transition text-white bg-indigo-600">すべて</button>
+                    <button onclick="setTab('owned')" id="tab-owned" class="px-3 py-1.5 text-xs font-medium rounded-md transition text-slate-400 hover:text-white">所持済み</button>
+                    <button onclick="setTab('shortage')" id="tab-shortage" class="px-3 py-1.5 text-xs font-medium rounded-md transition text-slate-400 hover:text-white">未所持・不足</button>
+                    <button onclick="setTab('unowned')" id="tab-unowned" class="px-3 py-1.5 text-xs font-medium rounded-md transition text-slate-400 hover:text-white">完全未所持</button>
                 </div>
-              </div>
-
-              <!-- カード名 -->
-              <h3 class="font-extrabold text-base text-slate-900 dark:text-white leading-snug line-clamp-2 mb-2" title="${escapeHTML(card.name)}">
-                ${escapeHTML(card.name)}
-              </h3>
-
-              <!-- 文明バッジ & カードタイプ -->
-              <div class="flex flex-wrap items-center gap-1.5 mb-2.5">
-                ${getCivilizationBadgeHTML(card.civilizations)}
-                ${card.type ? `
-                  <span class="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
-                    ${escapeHTML(card.type)}
-                  </span>
-                ` : ''}
-              </div>
-
-              <!-- パワー & 型番 -->
-              <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mb-2">
-                ${card.power ? `<span><i class="fa-solid fa-bolt text-amber-500 mr-1"></i>パワー: <strong class="text-slate-700 dark:text-slate-200">${escapeHTML(card.power)}</strong></span>` : ''}
-                ${card.setCode ? `<span><i class="fa-solid fa-box-open mr-1"></i>${escapeHTML(card.setCode)}</span>` : ''}
-              </div>
-
-              <!-- メモ -->
-              ${card.memo ? `
-                <p class="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 rounded-xl p-2.5 mb-3 line-clamp-2 border border-slate-100 dark:border-slate-800">
-                  ${escapeHTML(card.memo)}
-                </p>
-              ` : '<div class="mb-2"></div>'}
             </div>
 
-            <!-- 下部: 所持枚数コントロール & 編集・削除 -->
-            <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-              <!-- 枚数増減ボタン -->
-              <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                <button onclick="changeCardCount('${card.id}', -1)" class="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center shadow-2xs active:scale-95 transition" aria-label="枚数を減らす">
-                  <i class="fa-solid fa-minus text-xs"></i>
-                </button>
-                <span class="min-w-[3rem] px-1 text-center font-extrabold text-sm ${shortage > 0 ? 'text-rose-600 dark:text-rose-400' : (isOwned ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400')}">
-                  ${count}${needed > 0 ? `<span class="text-[11px] font-bold text-slate-400">/${needed}</span>` : '<span class="text-[10px] font-normal ml-0.5">枚</span>'}
-                </span>
-                <button onclick="changeCardCount('${card.id}', 1)" class="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center shadow-2xs active:scale-95 transition" aria-label="枚数を増やす">
-                  <i class="fa-solid fa-plus text-xs"></i>
-                </button>
-              </div>
-
-              <!-- 編集・削除アクション -->
-              <div class="flex items-center gap-1">
-                <button onclick="openCardModal('${card.id}')" class="p-2 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition" title="編集">
-                  <i class="fa-solid fa-pen-to-square"></i>
-                </button>
-                <button onclick="deleteCard('${card.id}')" class="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 transition" title="削除">
-                  <i class="fa-solid fa-trash-can"></i>
-                </button>
-              </div>
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+                <input type="text" id="search-input" placeholder="カード名・収録弾・メモ検索..." oninput="render()" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full md:w-64">
+                <select id="sort-select" onchange="render()" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+                    <option value="name">名前順</option>
+                    <option value="cost-asc">コスト低い順</option>
+                    <option value="cost-desc">コスト高い順</option>
+                    <option value="qty-desc">所持数多い順</option>
+                    <option value="shortage-desc">不足数多い順</option>
+                </select>
             </div>
-          </div>
-        `;
-      }).join('');
-    }
+        </div>
 
-    // テーブル行描画（PC表示用）
-    function renderTableRows(list) {
-      const tbody = document.getElementById('cardTableBody');
-      tbody.innerHTML = list.map(card => {
-        const count = Number(card.count) || 0;
-        const needed = Number(card.needed) || 0;
-        const shortage = Math.max(0, needed - count);
-        const isOwned = count > 0;
+        <!-- 文明フィルターバッジ -->
+        <div class="flex flex-wrap items-center gap-2 mb-6" id="civ-filters">
+            <button onclick="toggleCivFilter('all')" id="civ-btn-all" class="px-3 py-1 text-xs font-medium rounded-full bg-indigo-600 text-white transition">全文明</button>
+            <button onclick="toggleCivFilter('火')" id="civ-btn-火" class="px-3 py-1 text-xs font-medium rounded-full bg-red-900/60 border border-red-700 text-red-300 transition opacity-60">火</button>
+            <button onclick="toggleCivFilter('水')" id="civ-btn-水" class="px-3 py-1 text-xs font-medium rounded-full bg-blue-900/60 border border-blue-700 text-blue-300 transition opacity-60">水</button>
+            <button onclick="toggleCivFilter('自然')" id="civ-btn-自然" class="px-3 py-1 text-xs font-medium rounded-full bg-emerald-900/60 border border-emerald-700 text-emerald-300 transition opacity-60">自然</button>
+            <button onclick="toggleCivFilter('光')" id="civ-btn-光" class="px-3 py-1 text-xs font-medium rounded-full bg-amber-900/60 border border-amber-700 text-amber-300 transition opacity-60">光</button>
+            <button onclick="toggleCivFilter('闇')" id="civ-btn-闇" class="px-3 py-1 text-xs font-medium rounded-full bg-purple-900/60 border border-purple-700 text-purple-300 transition opacity-60">闇</button>
+            <button onclick="toggleCivFilter('ゼロ')" id="civ-btn-ゼロ" class="px-3 py-1 text-xs font-medium rounded-full bg-slate-700 border border-slate-600 text-slate-300 transition opacity-60">ゼロ</button>
+            <button onclick="toggleCivFilter('多色')" id="civ-btn-多色" class="px-3 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-amber-600 via-purple-600 to-blue-600 text-white transition opacity-60">多色</button>
+        </div>
 
-        let badge = '';
-        if (shortage > 0) {
-          badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-extrabold bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">あと${shortage}枚不足</span>`;
-        } else if (needed > 0) {
-          badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">充足済み</span>`;
-        } else if (isOwned) {
-          badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">所持</span>`;
-        } else {
-          badge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">未所持</span>`;
+        <!-- カード一覧グリッド -->
+        <div id="card-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+    </div>
+
+    <!-- モーダル：カード追加・編集 -->
+    <div id="card-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <h3 id="modal-title" class="text-lg font-bold text-white mb-4">新規カード追加</h3>
+            <input type="hidden" id="edit-id">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">カード名 *</label>
+                    <input type="text" id="input-name" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">コスト</label>
+                        <input type="number" id="input-cost" min="0" max="20" value="3" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">レアリティ</label>
+                        <select id="input-rarity" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                            <option value="C">C (コモン)</option>
+                            <option value="R">R (レア)</option>
+                            <option value="VR">VR (ベリーレア)</option>
+                            <option value="SR">SR (スーパーレア)</option>
+                            <option value="OR">OR (オーバーレア)</option>
+                            <option value="K">K (キング)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-2">文明（複数選択可：2つ以上で多色）</label>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="inline-flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 text-xs cursor-pointer"><input type="checkbox" name="civ" value="火" class="rounded bg-slate-800 border-slate-700"> 火</label>
+                        <label class="inline-flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 text-xs cursor-pointer"><input type="checkbox" name="civ" value="水" class="rounded bg-slate-800 border-slate-700"> 水</label>
+                        <label class="inline-flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 text-xs cursor-pointer"><input type="checkbox" name="civ" value="自然" class="rounded bg-slate-800 border-slate-700"> 自然</label>
+                        <label class="inline-flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 text-xs cursor-pointer"><input type="checkbox" name="civ" value="光" class="rounded bg-slate-800 border-slate-700"> 光</label>
+                        <label class="inline-flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 text-xs cursor-pointer"><input type="checkbox" name="civ" value="闇" class="rounded bg-slate-800 border-slate-700"> 闇</label>
+                        <label class="inline-flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 text-xs cursor-pointer"><input type="checkbox" name="civ" value="ゼロ" class="rounded bg-slate-800 border-slate-700"> ゼロ</label>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">所持枚数</label>
+                        <input type="number" id="input-qty" min="0" max="99" value="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">デッキ必要数</label>
+                        <input type="number" id="input-target" min="0" max="4" value="4" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">メモ・型番など</label>
+                    <input type="text" id="input-memo" placeholder="例: 23RP1 SR 秘1/秘2" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="closeCardModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium rounded-lg transition">キャンセル</button>
+                <button onclick="saveCard()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition">保存する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- モーダル：デッキから不足抽出 -->
+    <div id="deck-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-xl">
+            <h3 class="text-lg font-bold text-white mb-2">📋 デッキリストから不足抽出</h3>
+            <p class="text-xs text-slate-400 mb-4">デッキメーカー等からコピーしたテキスト（例: <code>4 x フェアリー・ライフ</code>）を貼り付けてください。未登録のカードは自動で追加されます。</p>
+            <div class="space-y-3">
+                <div>
+                    <textarea id="deck-text-input" rows="8" placeholder="4 蒼き団長 ドギラゴン剣
+2 フェアリー・ライフ
+終末の時計 ザ・クロック ×4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"></textarea>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="deck-overwrite-target" class="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-0">
+                    <label for="deck-overwrite-target" class="text-xs text-slate-300">既存の必要数をこのリストの枚数で上書きする（チェックなしの場合は加算）</label>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="closeDeckModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium rounded-lg transition">キャンセル</button>
+                <button onclick="processDeckList()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-lg transition">照合して不足分を抽出</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- モーダル：データ管理 -->
+    <div id="data-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <h3 class="text-lg font-bold text-white mb-4">⚙️ データ管理・バックアップ</h3>
+            <div class="space-y-3">
+                <button onclick="addDefaultCards()" class="w-full text-left px-4 py-3 bg-slate-900 hover:bg-slate-700/80 border border-slate-700 rounded-xl text-xs font-medium text-white transition flex items-center justify-between">
+                    <span>✨ 定番汎用カード50種を追加（不足分マージ）</span>
+                    <span class="text-indigo-400">実行</span>
+                </button>
+                <button onclick="exportJSON()" class="w-full text-left px-4 py-3 bg-slate-900 hover:bg-slate-700/80 border border-slate-700 rounded-xl text-xs font-medium text-white transition flex items-center justify-between">
+                    <span>📥 JSONファイルでバックアップ保存</span>
+                    <span class="text-emerald-400">保存</span>
+                </button>
+                <label class="w-full text-left px-4 py-3 bg-slate-900 hover:bg-slate-700/80 border border-slate-700 rounded-xl text-xs font-medium text-white transition flex items-center justify-between cursor-pointer">
+                    <span>📤 JSONファイルから復元（インポート）</span>
+                    <span class="text-amber-400">読込</span>
+                    <input type="file" accept=".json" onchange="importJSON(event)" class="hidden">
+                </label>
+                <button onclick="exportCSV()" class="w-full text-left px-4 py-3 bg-slate-900 hover:bg-slate-700/80 border border-slate-700 rounded-xl text-xs font-medium text-white transition flex items-center justify-between">
+                    <span>📊 CSV形式で書き出し（エクセル用）</span>
+                    <span class="text-blue-400">出力</span>
+                </button>
+                <div class="pt-3 border-t border-slate-700">
+                    <button onclick="resetData()" class="w-full text-center px-4 py-2.5 bg-rose-900/40 hover:bg-rose-900/70 border border-rose-700/50 rounded-xl text-xs font-medium text-rose-300 transition">
+                        ⚠️ すべてのデータをリセット（初期化）
+                    </button>
+                </div>
+            </div>
+            <div class="flex justify-end mt-6">
+                <button onclick="closeDataModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium rounded-lg transition">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_CARDS = [
+            { id: "d1", name: "フェアリー・Re:ライフ", cost: 2, civ: ["自然"], rarity: "C", qty: 0, target: 4, memo: "初動ブースト" },
+            { id: "d2", name: "地龍神の魔陣", cost: 2, civ: ["自然"], rarity: "R", qty: 0, target: 4, memo: "初動サーチ" },
+            { id: "d3", name: "フェアリー・ライフ", cost: 2, civ: ["自然"], rarity: "C", qty: 0, target: 4, memo: "定番ブースト" },
+            { id: "d4", name: "天災 デドダム", cost: 3, civ: ["水", "自然", "闇"], rarity: "R", qty: 0, target: 4, memo: "多色基盤" },
+            { id: "d5", name: "ブレイン・スラッシュ", cost: 4, civ: ["水", "闇"], rarity: "VR", qty: 0, target: 4, memo: "S・トリガー" },
+            { id: "d6", name: "終末の時計 ザ・クロック", cost: 4, civ: ["水"], rarity: "VR", qty: 0, target: 4, memo: "最強S・トリガー" },
+            { id: "d7", name: "切札勝太&カツキング ー熱血の物語ー", cost: 5, civ: ["火", "水", "自然"], rarity: "SR", qty: 0, target: 4, memo: "5C・革命チェンジ" },
+            { id: "d8", name: "流星のガイアッシュ・カイザー", cost: 8, civ: ["火", "自然"], rarity: "SR", qty: 0, target: 4, memo: "コスト軽減メタ" },
+            { id: "d9", name: "飛翔龍 5000VT", cost: 8, civ: ["水"], rarity: "VR", qty: 0, target: 4, memo: "メタクリーチャー" },
+            { id: "d10", name: "アーテル・ゴルギーニ", cost: 4, civ: ["闇"], rarity: "SR", qty: 0, target: 4, memo: "アビス・蘇生" },
+            { id: "d11", name: "CRYMAX ジャオウガ", cost: 4, civ: ["闇"], rarity: "SR", qty: 0, target: 4, memo: "フィニッシャー" },
+            { id: "d12", name: "ボン・キゴマイム / ♪やせ蛙 ラッキーナンバー ここにあり", cost: 3, civ: ["火"], rarity: "R", qty: 0, target: 4, memo: "メタ・呪文封じ" },
+            { id: "d13", name: "DG-パルル / 同期の妖精", cost: 2, civ: ["水"], rarity: "R", qty: 0, target: 4, memo: "選択メタ" },
+            { id: "d14", name: "音卿の精霊龍 ラフルル・ラブ / 「未来から来る、だからミラクル」", cost: 6, civ: ["光", "火"], rarity: "SR", qty: 0, target: 4, memo: "呪文封じ" },
+            { id: "d15", name: "水面展開شار / 闘争類拳嘩目 スパイナー", cost: 7, civ: ["水", "闇"], rarity: "R", qty: 0, target: 4, memo: "S・トリガー" },
+            { id: "d16", name: "頂上接続 ムザルミ=ブーゴ1st", cost: 7, civ: ["光", "自然", "闇"], rarity: "SR", qty: 0, target: 4, memo: "ドルマゲドン" },
+            { id: "d17", name: "配膳の超人 / 桜風妖精ステップル", cost: 2, civ: ["自然"], rarity: "C", qty: 0, target: 4, memo: "マッハファイター" },
+            { id: "d18", name: "キユリのASMラジオ", cost: 4, civ: ["自然"], rarity: "VR", qty: 0, target: 4, memo: "踏み倒し" },
+            { id: "d19", name: "パーフェクト・ネイチャー", cost: 7, civ: ["自然"], rarity: "SR", qty: 0, target: 4, memo: "GT" },
+            { id: "d20", name: "闘争類拳嘩目 スパイナー", cost: 7, civ: ["闇"], rarity: "R", qty: 0, target: 4, memo: "S・トリガー" }
+        ];
+
+        let cards = [];
+        let currentTab = 'all';
+        let currentCivFilters = [];
+
+        function init() {
+            const saved = localStorage.getItem('duema_cards_v3');
+            if (saved) {
+                try { cards = JSON.parse(saved); } catch (e) { cards = [...DEFAULT_CARDS]; }
+            } else {
+                cards = [...DEFAULT_CARDS];
+            }
+            render();
         }
 
-        return `
-          <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition ${!isOwned && shortage === 0 ? 'opacity-75' : ''}">
-            <td class="py-3 px-4 whitespace-nowrap">${badge}</td>
-            <td class="py-3 px-4">
-              <div class="font-bold text-slate-900 dark:text-white">${escapeHTML(card.name)}</div>
-              <div class="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
-                ${card.setCode ? `<span>${escapeHTML(card.setCode)}</span>` : ''}
-                ${card.memo ? `<span class="truncate max-w-xs text-slate-500">${escapeHTML(card.memo)}</span>` : ''}
-              </div>
-            </td>
-            <td class="py-3 px-4 whitespace-nowrap">${getCivilizationBadgeHTML(card.civilizations)}</td>
-            <td class="py-3 px-4 whitespace-nowrap text-xs text-slate-600 dark:text-slate-300">${escapeHTML(card.type || '-')}</td>
-            <td class="py-3 px-4 text-center font-bold">${card.cost !== '' && card.cost !== null && card.cost !== undefined ? Number(card.cost) : '-'}</td>
-            <td class="py-3 px-4 text-center font-bold text-slate-600 dark:text-slate-300">${needed > 0 ? `${needed}枚` : '-'}</td>
-            <td class="py-3 px-4 whitespace-nowrap">
-              <div class="flex items-center justify-center gap-1.5">
-                <button onclick="changeCardCount('${card.id}', -1)" class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 font-bold text-xs flex items-center justify-center">-</button>
-                <span class="w-8 text-center font-extrabold ${shortage > 0 ? 'text-rose-600 dark:text-rose-400' : (isOwned ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400')}">${count}</span>
-                <button onclick="changeCardCount('${card.id}', 1)" class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 font-bold text-xs flex items-center justify-center">+</button>
-              </div>
-            </td>
-            <td class="py-3 px-4 whitespace-nowrap text-right">
-              <button onclick="openCardModal('${card.id}')" class="p-1.5 text-slate-500 hover:text-indigo-600 transition" title="編集">
-                <i class="fa-solid fa-pen-to-square"></i>
-              </button>
-              <button onclick="deleteCard('${card.id}')" class="p-1.5 text-slate-400 hover:text-red-600 transition ml-1" title="削除">
-                <i class="fa-solid fa-trash-can"></i>
-              </button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    // 一覧画面から直接所持枚数を増減
-    function changeCardCount(id, delta) {
-      const idx = cards.findIndex(c => c.id === id);
-      if (idx === -1) return;
-      const current = Number(cards[idx].count) || 0;
-      const needed = Number(cards[idx].needed) || 0;
-      const next = Math.max(0, current + delta);
-      cards[idx].count = next;
-
-      // 必要枚数に到達した瞬間に通知
-      if (delta > 0 && needed > 0 && current < needed && next >= needed) {
-        showToast(`「${cards[idx].name}」の必要枚数(${needed}枚)を達成しました！`);
-      }
-
-      saveToStorage();
-      renderCards();
-    }
-
-    // 全カードの必要枚数を一括リセット
-    function confirmClearAllNeeded() {
-      showConfirm(
-        'デッキ必要枚数のリセット',
-        '登録されているすべてのカードの「デッキ必要枚数」を0にリセットしますか？（所持枚数はそのまま維持されます）',
-        () => {
-          cards.forEach(c => c.needed = 0);
-          saveToStorage();
-          renderCards();
-          showToast('全カードのデッキ必要枚数をリセットしました');
+        function saveToStorage() {
+            localStorage.setItem('duema_cards_v3', JSON.stringify(cards));
+            renderStats();
         }
-      );
-    }
-
-    // ==================== モーダル制御（登録・編集） ====================
-    function openCardModal(editId = null) {
-      const modal = document.getElementById('cardModal');
-      const form = document.getElementById('cardForm');
-      form.reset();
-
-      // チェックボックス初期化
-      document.querySelectorAll('input[name="civilization"]').forEach(cb => cb.checked = false);
-
-      if (editId) {
-        const card = cards.find(c => c.id === editId);
-        if (!card) return;
-        document.getElementById('modalTitle').textContent = 'カード情報の編集';
-        document.getElementById('cardId').value = card.id;
-        document.getElementById('cardName').value = card.name;
-        document.getElementById('cardType').value = card.type || 'クリーチャー';
-        document.getElementById('cardRarity').value = card.rarity || '';
-        document.getElementById('cardCost').value = card.cost ?? '';
-        document.getElementById('cardPower').value = card.power || '';
-        document.getElementById('cardSet').value = card.setCode || '';
-        document.getElementById('cardCount').value = card.count ?? 1;
-        document.getElementById('cardNeeded').value = card.needed ?? 0;
-        document.getElementById('cardMemo').value = card.memo || '';
-
-        const civs = card.civilizations || [];
-        document.querySelectorAll('input[name="civilization"]').forEach(cb => {
-          if (civs.includes(cb.value)) cb.checked = true;
-        });
-      } else {
-        document.getElementById('modalTitle').textContent = '新規カード登録';
-        document.getElementById('cardId').value = '';
-        document.getElementById('cardCount').value = 1;
-        document.getElementById('cardNeeded').value = 0;
-        document.getElementById('cardCost').value = 3;
-      }
-
-      updateCivSelection();
-      updateModalStatusLabel();
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-      setTimeout(() => document.getElementById('cardName').focus(), 50);
-    }
-
-    function closeCardModal() {
-      const modal = document.getElementById('cardModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-
-    // 文明選択の排他制御（「ゼロ」と他文明）＆プレビュー更新
-    function updateCivSelection(zeroClicked = false) {
-      const checkboxes = Array.from(document.querySelectorAll('input[name="civilization"]'));
-      const zeroCb = checkboxes.find(cb => cb.value === 'ゼロ');
-      const otherCbs = checkboxes.filter(cb => cb.value !== 'ゼロ');
-
-      if (zeroClicked && zeroCb.checked) {
-        otherCbs.forEach(cb => cb.checked = false);
-      } else if (!zeroClicked && otherCbs.some(cb => cb.checked)) {
-        zeroCb.checked = false;
-      }
-
-      const selected = checkboxes.filter(cb => cb.checked).map(cb => cb.value);
-      const badge = document.getElementById('civPreviewBadge');
-
-      if (selected.length === 0) {
-        badge.textContent = '未設定';
-        badge.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-dashed border-slate-400 text-slate-500 dark:text-slate-400';
-      } else if (selected.length === 1 && selected[0] === 'ゼロ') {
-        badge.textContent = 'ゼロ（無色）';
-        badge.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200';
-      } else if (selected.length === 1) {
-        badge.textContent = `単色：${selected[0]}`;
-        badge.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200';
-      } else {
-        badge.textContent = `🌈 多色（${selected.join('/')}）`;
-        badge.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full rainbow-badge';
-      }
-    }
-
-    function adjustModalCount(inputId, delta) {
-      const input = document.getElementById(inputId);
-      const val = Math.max(0, (Number(input.value) || 0) + delta);
-      input.value = val;
-      updateModalStatusLabel();
-    }
-
-    function updateModalStatusLabel() {
-      const count = Number(document.getElementById('cardCount').value) || 0;
-      const needed = Number(document.getElementById('cardNeeded').value) || 0;
-      const shortage = Math.max(0, needed - count);
-
-      const label = document.getElementById('statusAutoLabel');
-      if (count > 0) {
-        label.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i>所持中（${count}枚）`;
-        label.className = 'text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5';
-      } else {
-        label.innerHTML = `<i class="fa-regular fa-star mr-1"></i>未所持（0枚）`;
-        label.className = 'text-xs font-semibold text-amber-600 dark:text-amber-400 mt-0.5';
-      }
-
-      const shortLabel = document.getElementById('shortageAutoLabel');
-      if (needed <= 0) {
-        shortLabel.innerHTML = `必要枚数未設定 (0枚)`;
-        shortLabel.className = 'text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5';
-      } else if (shortage > 0) {
-        shortLabel.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i>あと ${shortage}枚 不足しています`;
-        shortLabel.className = 'text-xs font-bold text-rose-600 dark:text-rose-400 mt-0.5';
-      } else {
-        shortLabel.innerHTML = `<i class="fa-solid fa-check-double mr-1"></i>必要枚数（${needed}枚）をすべて確保済み！`;
-        shortLabel.className = 'text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5';
-      }
-    }
-
-    // カード保存
-    function saveCard(event) {
-      event.preventDefault();
-      const id = document.getElementById('cardId').value;
-      const name = document.getElementById('cardName').value.trim();
-      if (!name) return;
-
-      const selectedCivs = Array.from(document.querySelectorAll('input[name="civilization"]:checked')).map(cb => cb.value);
-      const civilizations = selectedCivs.length > 0 ? selectedCivs : ['未設定'];
-      const costVal = document.getElementById('cardCost').value;
-
-      const cardData = {
-        id: id || 'dm-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-        name: name,
-        civilizations: civilizations,
-        type: document.getElementById('cardType').value,
-        rarity: document.getElementById('cardRarity').value.trim(),
-        cost: costVal === '' ? '' : Number(costVal),
-        power: document.getElementById('cardPower').value.trim(),
-        setCode: document.getElementById('cardSet').value.trim(),
-        count: Math.max(0, Number(document.getElementById('cardCount').value) || 0),
-        needed: Math.max(0, Number(document.getElementById('cardNeeded').value) || 0),
-        memo: document.getElementById('cardMemo').value.trim(),
-        createdAt: Date.now()
-      };
-
-      if (id) {
-        const idx = cards.findIndex(c => c.id === id);
-        if (idx !== -1) cards[idx] = cardData;
-        showToast('カード情報を更新しました');
-      } else {
-        cards.unshift(cardData);
-        showToast('新しいカードを登録しました');
-      }
-
-      saveToStorage();
-      renderCards();
-      closeCardModal();
-    }
-
-    // ==================== デッキリスト一括照合・不足抽出ロジック ====================
-    function openDeckModal() {
-      const modal = document.getElementById('deckModal');
-      document.getElementById('deckListInput').value = '';
-      parsedDeckItems = [];
-      document.getElementById('deckPreviewSection').classList.add('hidden');
-      document.getElementById('applyDeckListBtn').disabled = true;
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-      setTimeout(() => document.getElementById('deckListInput').focus(), 50);
-    }
-
-    function closeDeckModal() {
-      const modal = document.getElementById('deckModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-
-    // デッキリストのサンプル挿入
-    function insertSampleDeckText() {
-      const sampleText = [
-        'メインデッキ (40)',
-        '4 x フェアリー・ライフ',
-        '4 x ボルシャック・ドラゴン',
-        '3 x 無双竜機ボルバルザーク',
-        '4枚 蒼き団長 ドギラゴン剣',
-        '切札勝太&カツキング -熱血の物語- ×4'
-    // カード名の正規化（全角英数・長音記号・中黒・スペース揺れの吸収）
-    function normalizeCardName(name) {
-      return name
-        .replace(/[！-～]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
-        .replace(/[ー―‐−─]/g, '-')
-        .replace(/[・･]/g, '・')
-        .replace(/[“”″]/g, '"')
-        .replace(/[‘’′]/g, "'")
-        .replace(/[〜～]/g, '~')
-        .replace(/　/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-    }
-
-    // デッキリストテキストのパース＆リアルタイム照合
-    function parseAndPreviewDeckList() {
-      const rawText = document.getElementById('deckListInput').value;
-      const lines = rawText.split(/\r?\n/);
-      const itemMap = new Map();
-
-      // 無視すべき見出しキーワード
-      const ignoreHeaders = /^(メインデッキ|超次元ゾーン|超次元|grゾーン|gr|禁断|零龍|合計|計|total|main|side|extra)[\s:：(（\d]*[)）枚]?$/i;
-
-      lines.forEach(line => {
-        // 行頭の記号（・, -, *, ■, □, ▪, 1. など）を除去
-        let cleaned = line.trim().replace(/^([・\-*■□▪◆◇●○•]+|\d+[\.\)）]\s*)/, '').trim();
-        if (!cleaned) return;
-        if (ignoreHeaders.test(cleaned)) return;
-        if (/^[-=＝ー]{3,}$/.test(cleaned)) return;
-
-        let count = 0;
-        let name = '';
-
-        // パターン1: 先頭に枚数がある形式 (例: "4 x カード名", "4x カード名", "4×カード名", "4枚 カード名", "4 カード名")
-        let matchPrefix = cleaned.match(/^(\d{1,2})\s*(?:[xX×＊\*枚]\s*|\s+)(.+)$/);
-        // パターン2: 末尾に枚数がある形式 (例: "カード名 ×4", "カード名 x 4", "カード名 4枚", "カード名 (4)")
-        let matchSuffix = cleaned.match(/^(.+?)\s*(?:[xX×＊\*]\s*(\d{1,2})|(\d{1,2})\s*枚|[（\(](\d{1,2})[枚）\)])$/);
-
-        if (matchPrefix) {
-          count = parseInt(matchPrefix[1], 10);
-          name = matchPrefix[2].trim();
-        } else if (matchSuffix) {
-          name = matchSuffix[1].trim();
-          count = parseInt(matchSuffix[2] || matchSuffix[3] || matchSuffix[4], 10);
-        } else {
-          // 枚数表記がない場合、日本語を含む有効な行なら1枚として扱う（短い記号行は除外）
-          if (cleaned.length >= 2 && !/^\d+$/.test(cleaned)) {
-            count = 1;
-            name = cleaned;
-          }
-        }
-
-        if (name && count > 0) {
-          // 末尾の型番表記 [DM24-EX1] 等が付いていれば除去して名寄せしやすくする
-          name = name.replace(/\s*[\[［【][^\]］】]+[\]］】]\s*$/, '').trim();
-          const normKey = normalizeCardName(name).toLowerCase();
-
-          if (itemMap.has(normKey)) {
-            const existing = itemMap.get(normKey);
-            existing.deckCount += count;
-          } else {
-            itemMap.set(normKey, {
-              name: name,
-              normKey: normKey,
-              deckCount: count
-            });
-          }
-        }
-      });
-
-      parsedDeckItems = Array.from(itemMap.values());
-      const previewSection = document.getElementById('deckPreviewSection');
-      const applyBtn = document.getElementById('applyDeckListBtn');
-
-      if (parsedDeckItems.length === 0) {
-        previewSection.classList.add('hidden');
-        applyBtn.disabled = true;
-        return;
-      }
-
-      previewSection.classList.remove('hidden');
-      applyBtn.disabled = false;
-
-      const applyMode = document.querySelector('input[name="deckApplyMode"]:checked').value;
-      let totalCards = 0;
-      let okCount = 0;
-      let partialCount = 0;
-      let newCount = 0;
-
-      const rowsHTML = parsedDeckItems.map(item => {
-        totalCards += item.deckCount;
-        // 既存カード検索（正規化名で一致確認）
-        const matchedCard = cards.find(c => normalizeCardName(c.name).toLowerCase() === item.normKey);
-        const owned = matchedCard ? (Number(matchedCard.count) || 0) : 0;
-        const prevNeeded = matchedCard ? (Number(matchedCard.needed) || 0) : 0;
-        const targetNeeded = applyMode === 'add' ? (prevNeeded + item.deckCount) : item.deckCount;
-        const shortage = Math.max(0, targetNeeded - owned);
-
-        let statusHTML = '';
-        if (!matchedCard) {
-          newCount++;
-          statusHTML = `<span class="inline-flex items-center px-2 py-0.5 rounded font-bold bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">未所持 (あと${shortage}枚)</span>`;
-        } else if (shortage > 0) {
-          partialCount++;
-          statusHTML = `<span class="inline-flex items-center px-2 py-0.5 rounded font-bold bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">あと ${shortage}枚 不足</span>`;
-        } else {
-          okCount++;
-          statusHTML = `<span class="inline-flex items-center px-2 py-0.5 rounded font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"><i class="fa-solid fa-check mr-1"></i>足りている</span>`;
-        }
-
-        return `
-          <tr>
-            <td class="py-2 px-3 font-bold text-slate-800 dark:text-slate-100">
-              ${escapeHTML(matchedCard ? matchedCard.name : item.name)}
-              ${!matchedCard ? '<span class="ml-1 text-[10px] font-normal text-indigo-500">[新規]</span>' : ''}
-            </td>
-            <td class="py-2 px-2 text-center font-semibold">${owned}枚</td>
-            <td class="py-2 px-2 text-center font-bold text-indigo-600 dark:text-indigo-400">${targetNeeded}枚</td>
-            <td class="py-2 px-3 text-right whitespace-nowrap">${statusHTML}</td>
-          </tr>
-        `;
-      }).join('');
-
-      document.getElementById('previewTotalSpecies').textContent = parsedDeckItems.length;
-      document.getElementById('previewTotalCards').textContent = totalCards;
-      document.getElementById('previewOkCount').textContent = okCount;
-      document.getElementById('previewPartialCount').textContent = partialCount;
-      document.getElementById('previewNewCount').textContent = newCount;
-      document.getElementById('deckPreviewBody').innerHTML = rowsHTML;
-    }
-
-    // 照合結果をカードリストに反映
-    function applyDeckListToVault() {
-      if (parsedDeckItems.length === 0) return;
-
-      const applyMode = document.querySelector('input[name="deckApplyMode"]:checked').value;
-      let addedNewCount = 0;
-      let updatedCount = 0;
-
-      parsedDeckItems.forEach((item, index) => {
-        const matchedIdx = cards.findIndex(c => normalizeCardName(c.name).toLowerCase() === item.normKey);
-
-        if (matchedIdx !== -1) {
-          const prevNeeded = Number(cards[matchedIdx].needed) || 0;
-          cards[matchedIdx].needed = applyMode === 'add' ? (prevNeeded + item.deckCount) : item.deckCount;
-          cards[matchedIdx].createdAt = Date.now() + index;
-          updatedCount++;
-        } else {
-          // プリセット内に定義があれば文明・コスト等を自動補完して新規追加
-          const presetMatch = PRESET_STAPLE_CARDS.find(p => normalizeCardName(p.name).toLowerCase() === item.normKey);
-          cards.unshift({
-            id: 'dm-' + Date.now() + '-' + index + '-' + Math.random().toString(36).substring(2, 5),
-            name: presetMatch ? presetMatch.name : item.name,
-            civilizations: presetMatch ? [...presetMatch.civilizations] : ['未設定'],
-            type: presetMatch ? presetMatch.type : '',
-            rarity: presetMatch ? presetMatch.rarity : '',
-            cost: presetMatch ? presetMatch.cost : '',
-            power: presetMatch ? presetMatch.power : '',
-            setCode: presetMatch ? presetMatch.setCode : '',
-            count: 0,
-            needed: item.deckCount,
-            memo: presetMatch ? presetMatch.memo : 'デッキリストから抽出',
-            createdAt: Date.now() + index
-          });
-          addedNewCount++;
-        }
-      });
-
-      saveToStorage();
-      closeDeckModal();
-
-      // 反映後は自動的に「未所持・不足 (欲しい)」タブに切り替えて確認しやすくする
-      setStatusFilter('unowned');
-      showToast(`新規${addedNewCount}種・更新${updatedCount}種を反映しました！`);
-    }
-
-    // ==================== データバックアップ・エクスポート/インポート ====================
-    function openDataModal() {
-      const modal = document.getElementById('dataModal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-
-    function closeDataModal() {
-      const modal = document.getElementById('dataModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-
-    // JSONエクスポート
-    function exportJSON() {
-      const dataStr = JSON.stringify(cards, null, 2);
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const dateStr = new Date().toISOString().slice(0, 10);
-      downloadBlob(blob, `duema_cards_backup_${dateStr}.json`);
-      showToast('JSONファイルをダウンロードしました');
-    }
-
-    // CSVエクスポート（Excel文字化け防止のBOM付きUTF-8）
-    function exportCSV() {
-      const headers = ['カード名', '文明', 'カードタイプ', 'コスト', 'パワー', 'レアリティ', '収録弾・型番', '所持状態', '所持枚数', 'デッキ必要枚数', '不足枚数', 'メモ'];
-      const rows = cards.map(c => {
-        const count = Number(c.count) || 0;
-        const needed = Number(c.needed) || 0;
-        const shortage = Math.max(0, needed - count);
-        const status = shortage > 0 ? `不足(あと${shortage}枚)` : (count > 0 ? '所持' : '未所持');
-        const civStr = (c.civilizations || []).join('/');
-        return [
-          c.name,
-          civStr,
-          c.type || '',
-          c.cost ?? '',
-          c.power || '',
-          c.rarity || '',
-          c.setCode || '',
-          status,
-          count,
-          needed,
-          shortage,
-          c.memo || ''
-        ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(',');
-      });
-
-      const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const dateStr = new Date().toISOString().slice(0, 10);
-      downloadBlob(blob, `duema_cards_list_${dateStr}.csv`);
-      showToast('CSVファイルをダウンロードしました');
-    }
-
-    function downloadBlob(blob, filename) {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-
-    // JSONインポート
-    function importJSON(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const imported = JSON.parse(e.target.result);
-          if (!Array.isArray(imported)) {
-            throw new Error('無効なフォーマットです');
-          }
-          // 簡易バリデーションとサニタイズ
-          const validCards = imported.filter(item => item && typeof item.name === 'string').map(item => ({
-            id: item.id || 'dm-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-            name: item.name,
-            civilizations: Array.isArray(item.civilizations) ? item.civilizations : ['未設定'],
-            type: item.type || '',
-    // 定番汎用カード50種のうち未登録分のみを既存リストへ追加
-    function addMissingPresetCards() {
-      const existingKeys = new Set(cards.map(c => normalizeCardName(c.name).toLowerCase()));
-      let addedCount = 0;
-
-      PRESET_STAPLE_CARDS.forEach((preset, idx) => {
-        const key = normalizeCardName(preset.name).toLowerCase();
-        if (!existingKeys.has(key)) {
-          cards.push({
-            ...preset,
-            id: 'preset-' + Date.now() + '-' + idx,
-            civilizations: [...preset.civilizations],
-            count: 0,
-            needed: 0,
-            createdAt: Date.now() - idx
-          });
-          addedCount++;
-        }
-      });
-
-      closeDataModal();
-      if (addedCount > 0) {
-        saveToStorage();
-        renderCards();
-        showToast(`未登録の定番汎用カード ${addedCount}種を追加しました！`);
-      } else {
-        showToast('定番汎用カード50種はすでにすべて登録済みです');
-      }
-    }
-
-    // 初期化・全削除の確認呼び出し
-    function confirmAction(type) {
-      closeDataModal();
-      if (type === 'sample') {
-        showConfirm(
-          '初期50種データにリセット',
-          '現在の登録データを消去し、定番汎用カード50種（すべて所持0枚・必要0枚）の初期状態に戻しますか？',
-          () => {
-            cards = PRESET_STAPLE_CARDS.map(c => ({ ...c, civilizations: [...c.civilizations] }));
-            saveToStorage();
-            renderCards();
-            showToast('定番汎用カード50種の初期状態にリセットしました');
-          }
-        );
-      } else if (type === 'clearAll') {
-        showConfirm(
-          '全データの完全削除',
-          '登録されているすべてのカードデータを削除します。この操作は取り消せません。本当に削除しますか？',
-          () => {
-            cards = [];
-            saveToStorage();
-            renderCards();
-            showToast('すべてのデータを削除しました');
-          }
-        );
-      }
-    }
-
-    // カスタム確認モーダル
-    function showConfirm(title, message, onExecute) {
-      document.getElementById('confirmTitle').textContent = title;
-      document.getElementById('confirmMessage').textContent = message;
-      pendingConfirmCallback = onExecute;
-      const modal = document.getElementById('confirmModal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-
-    function closeConfirmModal() {
-      const modal = document.getElementById('confirmModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-      pendingConfirmCallback = null;
-    }
-
-    document.getElementById('confirmExecuteBtn').addEventListener('click', () => {
-      if (pendingConfirmCallback) pendingConfirmCallback();
-      closeConfirmModal();
-    });
-
-    // トースト通知
-    let toastTimer = null;
-    function showToast(msg) {
-      const toast = document.getElementById('toast');
-      document.getElementById('toastMessage').textContent = msg;
-      toast.classList.remove('opacity-0');
-      toast.classList.add('opacity-100');
-
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => {
-        toast.classList.remove('opacity-100');
-        toast.classList.add('opacity-0');
-      }, 2800);
-    }
-
-    // XSS対策エスケープ
-    function escapeHTML(str) {
-      if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    }
-
-    // ウィンドウリサイズ時の表示切替追従
-    window.addEventListener('resize', () => {
-      if (window.innerWidth < 1024 && currentViewMode === 'table') {
-        renderCards();
-      }
-    });
-  </script>
-</body>
-</html>
