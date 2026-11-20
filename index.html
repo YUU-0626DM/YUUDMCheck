@@ -1,256 +1,631 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>デュエマ所持カード管理ツール</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>デュエマ所持カード管理ツール Pro</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body{
+    background:#0f172a;
+    color:white;
+    font-family:sans-serif;
+}
+
+.modal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.7);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    z-index:1000;
+}
+
+.modal.show{
+    display:flex;
+}
+
+.card{
+    background:#1e293b;
+    border:1px solid #334155;
+}
+</style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen">
-    <div id="app" class="max-w-7xl mx-auto px-4 py-6">
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-slate-800 pb-4">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                    デュエマ所持カード管理 <span class="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full">Pro</span>
-                </h1>
-                <p class="text-xs text-slate-400 mt-1">定番汎用カード対応・デッキ不足抽出システム</p>
-            </div>
-            <div class="flex flex-wrap items-center gap-2">
-                <button onclick="openDeckModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 shadow-sm">
-                    📋 デッキから不足抽出
-                </button>
-                <button onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 shadow-sm">
-                    ＋ 新規カード追加
-                </button>
-                <button onclick="openDataModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-2 rounded-lg font-medium transition border border-slate-700">
-                    ⚙️ データ管理
-                </button>
-            </div>
-        </header>
 
-        <!-- 統計・ダッシュボード -->
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-            <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl shadow-sm">
-                <div class="text-xs text-slate-400">登録カード種</div>
-                <div id="stat-total" class="text-xl font-bold text-white mt-1">0</div>
-            </div>
-            <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl shadow-sm">
-                <div class="text-xs text-slate-400">所持済み</div>
-                <div id="stat-owned" class="text-xl font-bold text-emerald-400 mt-1">0</div>
-            </div>
-            <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl shadow-sm">
-                <div class="text-xs text-slate-400">総所持枚数</div>
-                <div id="stat-quantity" class="text-xl font-bold text-indigo-400 mt-1">0 枚</div>
-            </div>
-            <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl shadow-sm">
-                <div class="text-xs text-slate-400">不足カード種</div>
-                <div id="stat-shortage" class="text-xl font-bold text-rose-400 mt-1">0</div>
-            </div>
-            <div class="col-span-2 md:col-span-1 bg-slate-800/80 border border-slate-700/60 p-3 rounded-xl shadow-sm">
-                <div class="text-xs text-slate-400">総不足枚数</div>
-                <div id="stat-shortage-qty" class="text-xl font-bold text-amber-400 mt-1">0 枚</div>
-            </div>
+<body>
+
+<div class="max-w-7xl mx-auto p-4">
+
+    <div class="flex flex-wrap justify-between gap-3 mb-6">
+        <div>
+            <h1 class="text-3xl font-bold">
+                デュエマ所持カード管理
+            </h1>
+
+            <p class="text-slate-400 text-sm">
+                所持カード・不足カード管理
+            </p>
         </div>
 
-        <!-- フィルター・検索バー -->
-        <div class="bg-slate-800/80 border border-slate-700/60 p-4 rounded-xl mb-6 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
-            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                <div class="flex bg-slate-900 p-1 rounded-lg border border-slate-700 w-full md:w-auto overflow-x-auto">
-                    <button onclick="setTab('all')" id="tab-all" class="px-3 py-1.5 text-xs font-medium rounded-md transition text-white bg-indigo-600">すべて</button>
-                    <button onclick="setTab('owned')" id="tab-owned" class="px-3 py-1.5 text-xs font-medium rounded-md transition text-slate-400 hover:text-white">所持済み</button>
-                    <button onclick="setTab('shortage')" id="tab-shortage" class="px-3 py-1.5 text-xs font-medium rounded-md transition text-slate-400 hover:text-white">未所持・不足</button>
-                    <button onclick="setTab('unowned')" id="tab-unowned" class="px-3 py-1.5 text-xs font-medium rounded-md transition text-slate-400 hover:text-white">完全未所持</button>
-                </div>
-            </div>
+        <div class="flex gap-2 flex-wrap">
 
-            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
-                <input type="text" id="search-input" placeholder="カード名・収録弾・メモ検索..." oninput="render()" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full md:w-64">
-                <select id="sort-select" onchange="render()" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
-                    <option value="name">名前順</option>
-                    <option value="cost-asc">コスト低い順</option>
-                    <option value="cost-desc">コスト高い順</option>
-                    <option value="qty-desc">所持数多い順</option>
-                    <option value="shortage-desc">不足数多い順</option>
-                </select>
-            </div>
-        </div>
+            <button
+                onclick="openAddModal()"
+                class="bg-indigo-600 px-4 py-2 rounded"
+            >
+                ＋カード追加
+            </button>
 
-        <!-- 文明フィルターバッジ -->
-        <div class="flex flex-wrap items-center gap-2 mb-6" id="civ-filters">
-            <button onclick="toggleCivFilter('all')" id="civ-btn-all" class="px-3 py-1 text-xs font-medium rounded-full bg-indigo-600 text-white transition">全文明</button>
-            <button onclick="toggleCivFilter('火')" id="civ-btn-火" class="px-3 py-1 text-xs font-medium rounded-full bg-red-900/60 border border-red-700 text-red-300 transition opacity-60">火</button>
-            <button onclick="toggleCivFilter('水')" id="civ-btn-水" class="px-3 py-1 text-xs font-medium rounded-full bg-blue-900/60 border border-blue-700 text-blue-300 transition opacity-60">水</button>
-            <button onclick="toggleCivFilter('自然')" id="civ-btn-自然" class="px-3 py-1 text-xs font-medium rounded-full bg-emerald-900/60 border border-emerald-700 text-emerald-300 transition opacity-60">自然</button>
-            <button onclick="toggleCivFilter('光')" id="civ-btn-光" class="px-3 py-1 text-xs font-medium rounded-full bg-amber-900/60 border border-amber-700 text-amber-300 transition opacity-60">光</button>
-            <button onclick="toggleCivFilter('闇')" id="civ-btn-闇" class="px-3 py-1 text-xs font-medium rounded-full bg-purple-900/60 border border-purple-700 text-purple-300 transition opacity-60">闇</button>
-            <button onclick="toggleCivFilter('ゼロ')" id="civ-btn-ゼロ" class="px-3 py-1 text-xs font-medium rounded-full bg-slate-700 border border-slate-600 text-slate-300 transition opacity-60">ゼロ</button>
-            <button onclick="toggleCivFilter('多色')" id="civ-btn-多色" class="px-3 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-amber-600 via-purple-600 to-blue-600 text-white transition opacity-60">多色</button>
-        </div>
+            <button
+                onclick="openDeckModal()"
+                class="bg-emerald-600 px-4 py-2 rounded"
+            >
+                📋不足抽出
+            </button>
 
-        <!-- カード一覧グリッド -->
-        <div id="card-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
-    </div>
+            <button
+                onclick="exportJSON()"
+                class="bg-blue-600 px-4 py-2 rounded"
+            >
+                💾保存
+            </button>
 
-    <!-- モーダル：カード追加・編集 -->
-    <div id="card-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-xl">
-            <h3 id="modal-title" class="text-lg font-bold text-white mb-4">新規カード追加</h3>
-            <input type="hidden" id="edit-id">
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">カード名 *</label>
-                    <input type="text" id="input-name" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">コスト</label>
-                        <input type="number" id="input-cost" min="0" max="20" value="3" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">レアリティ</label>
-                        <select id="input-rarity" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-                            <option value="C">C (コモン)</option>
-                            <option value="R">R (レア)</option>
-                            <option value="VR">VR (ベリーレア)</option>
-                            <option value="SR">SR (スーパーレア)</option>
-                            <option value="OR">OR (オーバーレア)</option>
-                            <option value="K">K (キング)</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-2">文明（複数選択可：2つ以上で多色）</label>
-                    <div class="flex flex-wrap gap-2">
-                        <label class="inline-flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 text-xs cursor-pointer"><input type="checkbox" name="civ" value="火" class="rounded bg-slate-800 border-slate-700"> 火</label>
-                        <label class="inline-flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 text-xs cursor-pointer"><input type="checkbox" name="civ" value="水" class="rounded bg-slate-800 border-slate-700"> 水</label>
-                        <label class="inline-flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 text-xs cursor-pointer"><input type="checkbox" name="civ" value="自然" class="rounded bg-slate-800 border-slate-700"> 自然</label>
-                        <label class="inline-flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 text-xs cursor-pointer"><input type="checkbox" name="civ" value="光" class="rounded bg-slate-800 border-slate-700"> 光</label>
-                        <label class="inline-flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 text-xs cursor-pointer"><input type="checkbox" name="civ" value="闇" class="rounded bg-slate-800 border-slate-700"> 闇</label>
-                        <label class="inline-flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 text-xs cursor-pointer"><input type="checkbox" name="civ" value="ゼロ" class="rounded bg-slate-800 border-slate-700"> ゼロ</label>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">所持枚数</label>
-                        <input type="number" id="input-qty" min="0" max="99" value="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">デッキ必要数</label>
-                        <input type="number" id="input-target" min="0" max="4" value="4" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">メモ・型番など</label>
-                    <input type="text" id="input-memo" placeholder="例: 23RP1 SR 秘1/秘2" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-                </div>
-            </div>
-            <div class="flex justify-end gap-2 mt-6">
-                <button onclick="closeCardModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium rounded-lg transition">キャンセル</button>
-                <button onclick="saveCard()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition">保存する</button>
-            </div>
+            <label
+                class="bg-amber-600 px-4 py-2 rounded cursor-pointer"
+            >
+                📂読込
+                <input
+                    type="file"
+                    id="importFile"
+                    class="hidden"
+                    onchange="importJSON(event)"
+                >
+            </label>
+
         </div>
     </div>
 
-    <!-- モーダル：デッキから不足抽出 -->
-    <div id="deck-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-xl">
-            <h3 class="text-lg font-bold text-white mb-2">📋 デッキリストから不足抽出</h3>
-            <p class="text-xs text-slate-400 mb-4">デッキメーカー等からコピーしたテキスト（例: <code>4 x フェアリー・ライフ</code>）を貼り付けてください。未登録のカードは自動で追加されます。</p>
-            <div class="space-y-3">
-                <div>
-                    <textarea id="deck-text-input" rows="8" placeholder="4 蒼き団長 ドギラゴン剣
-2 フェアリー・ライフ
-終末の時計 ザ・クロック ×4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"></textarea>
-                </div>
-                <div class="flex items-center gap-2">
-                    <input type="checkbox" id="deck-overwrite-target" class="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-0">
-                    <label for="deck-overwrite-target" class="text-xs text-slate-300">既存の必要数をこのリストの枚数で上書きする（チェックなしの場合は加算）</label>
-                </div>
+
+    <!-- 統計 -->
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+
+        <div class="card rounded p-3">
+            <div class="text-slate-400 text-xs">
+                登録カード
             </div>
-            <div class="flex justify-end gap-2 mt-6">
-                <button onclick="closeDeckModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium rounded-lg transition">キャンセル</button>
-                <button onclick="processDeckList()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-lg transition">照合して不足分を抽出</button>
+            <div id="statTotal" class="text-2xl font-bold">
+                0
             </div>
         </div>
-    </div>
 
-    <!-- モーダル：データ管理 -->
-    <div id="data-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-xl">
-            <h3 class="text-lg font-bold text-white mb-4">⚙️ データ管理・バックアップ</h3>
-            <div class="space-y-3">
-                <button onclick="addDefaultCards()" class="w-full text-left px-4 py-3 bg-slate-900 hover:bg-slate-700/80 border border-slate-700 rounded-xl text-xs font-medium text-white transition flex items-center justify-between">
-                    <span>✨ 定番汎用カード50種を追加（不足分マージ）</span>
-                    <span class="text-indigo-400">実行</span>
-                </button>
-                <button onclick="exportJSON()" class="w-full text-left px-4 py-3 bg-slate-900 hover:bg-slate-700/80 border border-slate-700 rounded-xl text-xs font-medium text-white transition flex items-center justify-between">
-                    <span>📥 JSONファイルでバックアップ保存</span>
-                    <span class="text-emerald-400">保存</span>
-                </button>
-                <label class="w-full text-left px-4 py-3 bg-slate-900 hover:bg-slate-700/80 border border-slate-700 rounded-xl text-xs font-medium text-white transition flex items-center justify-between cursor-pointer">
-                    <span>📤 JSONファイルから復元（インポート）</span>
-                    <span class="text-amber-400">読込</span>
-                    <input type="file" accept=".json" onchange="importJSON(event)" class="hidden">
-                </label>
-                <button onclick="exportCSV()" class="w-full text-left px-4 py-3 bg-slate-900 hover:bg-slate-700/80 border border-slate-700 rounded-xl text-xs font-medium text-white transition flex items-center justify-between">
-                    <span>📊 CSV形式で書き出し（エクセル用）</span>
-                    <span class="text-blue-400">出力</span>
-                </button>
-                <div class="pt-3 border-t border-slate-700">
-                    <button onclick="resetData()" class="w-full text-center px-4 py-2.5 bg-rose-900/40 hover:bg-rose-900/70 border border-rose-700/50 rounded-xl text-xs font-medium text-rose-300 transition">
-                        ⚠️ すべてのデータをリセット（初期化）
-                    </button>
-                </div>
+        <div class="card rounded p-3">
+            <div class="text-slate-400 text-xs">
+                所持済み
             </div>
-            <div class="flex justify-end mt-6">
-                <button onclick="closeDataModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium rounded-lg transition">閉じる</button>
+            <div id="statOwned" class="text-2xl font-bold text-green-400">
+                0
             </div>
         </div>
+
+        <div class="card rounded p-3">
+            <div class="text-slate-400 text-xs">
+                総所持枚数
+            </div>
+            <div id="statQty" class="text-2xl font-bold text-blue-400">
+                0
+            </div>
+        </div>
+
+        <div class="card rounded p-3">
+            <div class="text-slate-400 text-xs">
+                不足枚数
+            </div>
+            <div id="statNeed" class="text-2xl font-bold text-red-400">
+                0
+            </div>
+        </div>
+
     </div>
 
-    <script>
-        const DEFAULT_CARDS = [
-            { id: "d1", name: "フェアリー・Re:ライフ", cost: 2, civ: ["自然"], rarity: "C", qty: 0, target: 4, memo: "初動ブースト" },
-            { id: "d2", name: "地龍神の魔陣", cost: 2, civ: ["自然"], rarity: "R", qty: 0, target: 4, memo: "初動サーチ" },
-            { id: "d3", name: "フェアリー・ライフ", cost: 2, civ: ["自然"], rarity: "C", qty: 0, target: 4, memo: "定番ブースト" },
-            { id: "d4", name: "天災 デドダム", cost: 3, civ: ["水", "自然", "闇"], rarity: "R", qty: 0, target: 4, memo: "多色基盤" },
-            { id: "d5", name: "ブレイン・スラッシュ", cost: 4, civ: ["水", "闇"], rarity: "VR", qty: 0, target: 4, memo: "S・トリガー" },
-            { id: "d6", name: "終末の時計 ザ・クロック", cost: 4, civ: ["水"], rarity: "VR", qty: 0, target: 4, memo: "最強S・トリガー" },
-            { id: "d7", name: "切札勝太&カツキング ー熱血の物語ー", cost: 5, civ: ["火", "水", "自然"], rarity: "SR", qty: 0, target: 4, memo: "5C・革命チェンジ" },
-            { id: "d8", name: "流星のガイアッシュ・カイザー", cost: 8, civ: ["火", "自然"], rarity: "SR", qty: 0, target: 4, memo: "コスト軽減メタ" },
-            { id: "d9", name: "飛翔龍 5000VT", cost: 8, civ: ["水"], rarity: "VR", qty: 0, target: 4, memo: "メタクリーチャー" },
-            { id: "d10", name: "アーテル・ゴルギーニ", cost: 4, civ: ["闇"], rarity: "SR", qty: 0, target: 4, memo: "アビス・蘇生" },
-            { id: "d11", name: "CRYMAX ジャオウガ", cost: 4, civ: ["闇"], rarity: "SR", qty: 0, target: 4, memo: "フィニッシャー" },
-            { id: "d12", name: "ボン・キゴマイム / ♪やせ蛙 ラッキーナンバー ここにあり", cost: 3, civ: ["火"], rarity: "R", qty: 0, target: 4, memo: "メタ・呪文封じ" },
-            { id: "d13", name: "DG-パルル / 同期の妖精", cost: 2, civ: ["水"], rarity: "R", qty: 0, target: 4, memo: "選択メタ" },
-            { id: "d14", name: "音卿の精霊龍 ラフルル・ラブ / 「未来から来る、だからミラクル」", cost: 6, civ: ["光", "火"], rarity: "SR", qty: 0, target: 4, memo: "呪文封じ" },
-            { id: "d15", name: "水面展開شار / 闘争類拳嘩目 スパイナー", cost: 7, civ: ["水", "闇"], rarity: "R", qty: 0, target: 4, memo: "S・トリガー" },
-            { id: "d16", name: "頂上接続 ムザルミ=ブーゴ1st", cost: 7, civ: ["光", "自然", "闇"], rarity: "SR", qty: 0, target: 4, memo: "ドルマゲドン" },
-            { id: "d17", name: "配膳の超人 / 桜風妖精ステップル", cost: 2, civ: ["自然"], rarity: "C", qty: 0, target: 4, memo: "マッハファイター" },
-            { id: "d18", name: "キユリのASMラジオ", cost: 4, civ: ["自然"], rarity: "VR", qty: 0, target: 4, memo: "踏み倒し" },
-            { id: "d19", name: "パーフェクト・ネイチャー", cost: 7, civ: ["自然"], rarity: "SR", qty: 0, target: 4, memo: "GT" },
-            { id: "d20", name: "闘争類拳嘩目 スパイナー", cost: 7, civ: ["闇"], rarity: "R", qty: 0, target: 4, memo: "S・トリガー" }
-        ];
 
-        let cards = [];
-        let currentTab = 'all';
-        let currentCivFilters = [];
+    <!-- フィルタ -->
 
-        function init() {
-            const saved = localStorage.getItem('duema_cards_v3');
-            if (saved) {
-                try { cards = JSON.parse(saved); } catch (e) { cards = [...DEFAULT_CARDS]; }
-            } else {
-                cards = [...DEFAULT_CARDS];
+    <div class="card rounded p-4 mb-6">
+
+        <div class="flex flex-wrap gap-2 mb-3">
+
+            <button onclick="setFilter('all')" class="bg-indigo-600 px-3 py-1 rounded">
+                すべて
+            </button>
+
+            <button onclick="setFilter('owned')" class="bg-green-700 px-3 py-1 rounded">
+                所持済み
+            </button>
+
+            <button onclick="setFilter('missing')" class="bg-red-700 px-3 py-1 rounded">
+                不足
+            </button>
+
+        </div>
+
+        <input
+            id="searchBox"
+            type="text"
+            placeholder="カード名検索"
+            class="w-full bg-slate-800 border border-slate-700 rounded p-2"
+            oninput="renderCards()"
+        >
+
+    </div>
+
+
+    <!-- カード一覧 -->
+
+    <div
+        id="cardList"
+        class="grid md:grid-cols-3 lg:grid-cols-4 gap-4"
+    ></div>
+
+</div>
+
+
+<!-- カード追加モーダル -->
+
+<div id="addModal" class="modal">
+
+    <div class="bg-slate-800 p-5 rounded w-96">
+
+        <h2 class="text-xl font-bold mb-4">
+            カード追加
+        </h2>
+
+        <input
+            id="cardName"
+            type="text"
+            placeholder="カード名"
+            class="w-full p-2 rounded bg-slate-700 mb-3"
+        >
+
+        <input
+            id="cardQty"
+            type="number"
+            value="0"
+            class="w-full p-2 rounded bg-slate-700 mb-3"
+        >
+
+        <input
+            id="cardTarget"
+            type="number"
+            value="4"
+            class="w-full p-2 rounded bg-slate-700 mb-3"
+        >
+
+        <div class="flex justify-end gap-2">
+
+            <button
+                onclick="closeAddModal()"
+                class="bg-gray-600 px-4 py-2 rounded"
+            >
+                閉じる
+            </button>
+
+            <button
+                onclick="saveCard()"
+                class="bg-indigo-600 px-4 py-2 rounded"
+            >
+                保存
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- デッキ不足抽出 -->
+
+<div id="deckModal" class="modal">
+
+    <div class="bg-slate-800 p-5 rounded w-full max-w-xl">
+
+        <h2 class="text-xl font-bold mb-3">
+            デッキリスト不足抽出
+        </h2>
+
+        <textarea
+            id="deckText"
+            rows="10"
+            class="w-full bg-slate-700 rounded p-3 mb-3"
+        ></textarea>
+
+        <div class="flex justify-end gap-2">
+
+            <button
+                onclick="closeDeckModal()"
+                class="bg-gray-600 px-4 py-2 rounded"
+            >
+                閉じる
+            </button>
+
+            <button
+                onclick="analyzeDeck()"
+                class="bg-green-600 px-4 py-2 rounded"
+            >
+                解析
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<let currentFilter = "all";
+
+/* ---------- 保存 ---------- */
+
+function saveStorage() {
+    localStorage.setItem(
+        "duemaCards",
+        JSON.stringify(cards)
+    );
+
+    updateStats();
+}
+
+/* ---------- 統計 ---------- */
+
+function updateStats(){
+
+    const total = cards.length;
+
+    const owned = cards.filter(
+        c => c.qty > 0
+    ).length;
+
+    const qty = cards.reduce(
+        (sum,c)=>sum + Number(c.qty),
+        0
+    );
+
+    const shortage = cards.reduce(
+        (sum,c)=>sum + Math.max(0,c.target-c.qty),
+        0
+    );
+
+    document.getElementById("statTotal").textContent = total;
+    document.getElementById("statOwned").textContent = owned;
+    document.getElementById("statQty").textContent = qty;
+    document.getElementById("statNeed").textContent = shortage;
+}
+
+/* ---------- フィルタ ---------- */
+
+function setFilter(filter){
+
+    currentFilter = filter;
+
+    renderCards();
+}
+
+/* ---------- 描画 ---------- */
+
+function renderCards(){
+
+    const list = document.getElementById("cardList");
+
+    const keyword =
+        document.getElementById("searchBox")
+        .value
+        .toLowerCase();
+
+    let filtered = cards.filter(card=>{
+
+        const hit =
+            card.name.toLowerCase()
+            .includes(keyword);
+
+        if(!hit) return false;
+
+        if(currentFilter==="owned"){
+            return card.qty > 0;
+        }
+
+        if(currentFilter==="missing"){
+            return card.qty < card.target;
+        }
+
+        return true;
+
+    });
+
+    list.innerHTML = filtered.map(card=>{
+
+        const shortage =
+            Math.max(
+                0,
+                card.target-card.qty
+            );
+
+        return `
+        <div class="card rounded p-4">
+
+            <h3 class="font-bold mb-2">
+                ${card.name}
+            </h3>
+
+            <div class="text-sm text-slate-300 mb-2">
+                所持 ${card.qty}枚
+            </div>
+
+            <div class="text-sm text-red-300 mb-3">
+                不足 ${shortage}枚
+            </div>
+
+            <div class="flex gap-2 mb-3">
+
+                <button
+                    onclick="changeQty('${card.id}',-1)"
+                    class="bg-slate-700 w-8 h-8 rounded"
+                >
+                    -
+                </button>
+
+                <button
+                    onclick="changeQty('${card.id}',1)"
+                    class="bg-indigo-600 w-8 h-8 rounded"
+                >
+                    +
+                </button>
+
+            </div>
+
+            <button
+                onclick="deleteCard('${card.id}')"
+                class="bg-red-600 px-3 py-1 rounded text-sm"
+            >
+                削除
+            </button>
+
+        </div>
+        `;
+
+    }).join("");
+
+    updateStats();
+}
+
+/* ---------- 枚数変更 ---------- */
+
+function changeQty(id, amount){
+
+    const card = cards.find(
+        c=>c.id===id
+    );
+
+    if(!card) return;
+
+    card.qty =
+        Math.max(
+            0,
+            Number(card.qty)+amount
+        );
+
+    saveStorage();
+    renderCards();
+}
+
+/* ---------- 追加モーダル ---------- */
+
+function openAddModal(){
+
+    document
+    .getElementById("addModal")
+    .classList
+    .add("show");
+}
+
+function closeAddModal(){
+
+    document
+    .getElementById("addModal")
+    .classList
+    .remove("show");
+}
+
+/* ---------- カード追加 ---------- */
+
+function saveCard(){
+
+    const name =
+        document
+        .getElementById("cardName")
+        .value
+        .trim();
+
+    if(!name){
+
+        alert("カード名を入力してください");
+        return;
+    }
+
+    const qty = parseInt(
+        document.getElementById("cardQty").value
+    ) || 0;
+
+    const target = parseInt(
+        document.getElementById("cardTarget").value
+    ) || 4;
+
+    cards.push({
+
+        id:
+            "c_" +
+            Date.now(),
+
+        name,
+        qty,
+        target
+
+    });
+
+    document.getElementById("cardName").value = "";
+
+    saveStorage();
+
+    renderCards();
+
+    closeAddModal();
+}
+
+/* ---------- 削除 ---------- */
+
+function deleteCard(id){
+
+    if(!confirm("削除しますか？")){
+        return;
+    }
+
+    cards =
+        cards.filter(
+            c=>c.id!==id
+        );
+
+    saveStorage();
+
+    renderCards();
+}
+
+/* ---------- 起動 ---------- */
+
+function loadStorage(){
+
+    const saved =
+        localStorage.getItem(
+            "duemaCards"
+        );
+
+    if(saved){
+
+        try{
+
+            cards = JSON.parse(saved);
+
+        }catch{
+
+            cards = [...DEFAULT_CARDS];
+        }
+
+    }else{
+
+        cards = [...DEFAULT_CARDS];
+    }
+}
+
+loadStorage();
+
+renderCards();>
+/* =====================
+   JSONエクスポート
+===================== */
+
+function exportJSON(){
+
+    const data = JSON.stringify(
+        cards,
+        null,
+        2
+    );
+
+    const blob = new Blob(
+        [data],
+        {
+            type:"application/json"
+        }
+    );
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const a =
+        document.createElement("a");
+
+    a.href = url;
+
+    a.download =
+        "duema_cards_backup.json";
+
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+/* =====================
+   JSONインポート
+===================== */
+
+function importJSON(event){
+
+    const file =
+        event.target.files[0];
+
+    if(!file) return;
+
+    const reader =
+        new FileReader();
+
+    reader.onload = function(e){
+
+        try{
+
+            const imported =
+                JSON.parse(
+                    e.target.result
+                );
+
+            if(
+                !Array.isArray(imported)
+            ){
+                throw new Error();
             }
-            render();
+
+            cards = imported;
+
+            saveStorage();
+
+            renderCards();
+
+            alert(
+                "読込完了"
+            );
+
+        }catch{
+
+            alert(
+                "JSON形式が不正です"
+            );
         }
 
-        function saveToStorage() {
-            localStorage.setItem('duema_cards_v3', JSON.stringify(cards));
-            renderStats();
-        }
+    };
+
+    reader.readAsText(file);
+
+}
+
+/* =====================
+   デッキモーダル
+===================== */
+
+function openDeckModal(){
+
+    document
+    .getElementById(
+        "deckModal"
+    )
+    .classList
+    .add("show
