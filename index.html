@@ -3,629 +3,245 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>デュエマ所持カード管理ツール Pro</title>
-
-<script src="https://cdn.tailwindcss.com"></script>
+<title>デュエマ所持カード管理</title>
 
 <style>
 body{
+    font-family:sans-serif;
     background:#0f172a;
     color:white;
-    font-family:sans-serif;
+    margin:0;
+    padding:20px;
 }
 
-.modal{
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,.7);
-    display:none;
-    justify-content:center;
-    align-items:center;
-    z-index:1000;
-}
-
-.modal.show{
-    display:flex;
+.container{
+    max-width:1000px;
+    margin:auto;
 }
 
 .card{
     background:#1e293b;
-    border:1px solid #334155;
+    padding:15px;
+    border-radius:10px;
+    margin-bottom:10px;
+}
+
+button{
+    cursor:pointer;
+    border:none;
+    border-radius:6px;
+    padding:8px 12px;
+}
+
+.add{
+    background:#4f46e5;
+    color:white;
+}
+
+.plus{
+    background:#16a34a;
+    color:white;
+}
+
+.minus{
+    background:#dc2626;
+    color:white;
+}
+
+input{
+    padding:8px;
+    border-radius:6px;
+}
+
+#cardList{
+    margin-top:20px;
 }
 </style>
-</head>
 
+</head>
 <body>
 
-<div class="max-w-7xl mx-auto p-4">
+<div class="container">
 
-    <div class="flex flex-wrap justify-between gap-3 mb-6">
-        <div>
-            <h1 class="text-3xl font-bold">
-                デュエマ所持カード管理
-            </h1>
+<h1>デュエマ所持カード管理</h1>
 
-            <p class="text-slate-400 text-sm">
-                所持カード・不足カード管理
-            </p>
-        </div>
+<input
+id="searchBox"
+type="text"
+placeholder="カード名検索"
+oninput="renderCards()"
+>
 
-        <div class="flex gap-2 flex-wrap">
+<button
+class="add"
+onclick="addCard()"
+>
+カード追加
+</button>
 
-            <button
-                onclick="openAddModal()"
-                class="bg-indigo-600 px-4 py-2 rounded"
-            >
-                ＋カード追加
-            </button>
-
-            <button
-                onclick="openDeckModal()"
-                class="bg-emerald-600 px-4 py-2 rounded"
-            >
-                📋不足抽出
-            </button>
-
-            <button
-                onclick="exportJSON()"
-                class="bg-blue-600 px-4 py-2 rounded"
-            >
-                💾保存
-            </button>
-
-            <label
-                class="bg-amber-600 px-4 py-2 rounded cursor-pointer"
-            >
-                📂読込
-                <input
-                    type="file"
-                    id="importFile"
-                    class="hidden"
-                    onchange="importJSON(event)"
-                >
-            </label>
-
-        </div>
-    </div>
-
-
-    <!-- 統計 -->
-
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-
-        <div class="card rounded p-3">
-            <div class="text-slate-400 text-xs">
-                登録カード
-            </div>
-            <div id="statTotal" class="text-2xl font-bold">
-                0
-            </div>
-        </div>
-
-        <div class="card rounded p-3">
-            <div class="text-slate-400 text-xs">
-                所持済み
-            </div>
-            <div id="statOwned" class="text-2xl font-bold text-green-400">
-                0
-            </div>
-        </div>
-
-        <div class="card rounded p-3">
-            <div class="text-slate-400 text-xs">
-                総所持枚数
-            </div>
-            <div id="statQty" class="text-2xl font-bold text-blue-400">
-                0
-            </div>
-        </div>
-
-        <div class="card rounded p-3">
-            <div class="text-slate-400 text-xs">
-                不足枚数
-            </div>
-            <div id="statNeed" class="text-2xl font-bold text-red-400">
-                0
-            </div>
-        </div>
-
-    </div>
-
-
-    <!-- フィルタ -->
-
-    <div class="card rounded p-4 mb-6">
-
-        <div class="flex flex-wrap gap-2 mb-3">
-
-            <button onclick="setFilter('all')" class="bg-indigo-600 px-3 py-1 rounded">
-                すべて
-            </button>
-
-            <button onclick="setFilter('owned')" class="bg-green-700 px-3 py-1 rounded">
-                所持済み
-            </button>
-
-            <button onclick="setFilter('missing')" class="bg-red-700 px-3 py-1 rounded">
-                不足
-            </button>
-
-        </div>
-
-        <input
-            id="searchBox"
-            type="text"
-            placeholder="カード名検索"
-            class="w-full bg-slate-800 border border-slate-700 rounded p-2"
-            oninput="renderCards()"
-        >
-
-    </div>
-
-
-    <!-- カード一覧 -->
-
-    <div
-        id="cardList"
-        class="grid md:grid-cols-3 lg:grid-cols-4 gap-4"
-    ></div>
+<div id="cardList"></div>
 
 </div>
 
+<script>
 
-<!-- カード追加モーダル -->
+let cards=[];
 
-<div id="addModal" class="modal">
+function loadData(){
 
-    <div class="bg-slate-800 p-5 rounded w-96">
+const saved=
+localStorage.getItem("duema_cards");
 
-        <h2 class="text-xl font-bold mb-4">
-            カード追加
-        </h2>
+if(saved){
 
-        <input
-            id="cardName"
-            type="text"
-            placeholder="カード名"
-            class="w-full p-2 rounded bg-slate-700 mb-3"
-        >
+cards=JSON.parse(saved);
 
-        <input
-            id="cardQty"
-            type="number"
-            value="0"
-            class="w-full p-2 rounded bg-slate-700 mb-3"
-        >
+}else{
 
-        <input
-            id="cardTarget"
-            type="number"
-            value="4"
-            class="w-full p-2 rounded bg-slate-700 mb-3"
-        >
+cards=[
+{
+id:1,
+name:"フェアリー・ライフ",
+qty:0
+},
+{
+id:2,
+name:"天災 デドダム",
+qty:0
+},
+{
+id:3,
+name:"飛翔龍5000VT",
+qty:0
+}
+];
 
-        <div class="flex justify-end gap-2">
-
-            <button
-                onclick="closeAddModal()"
-                class="bg-gray-600 px-4 py-2 rounded"
-            >
-                閉じる
-            </button>
-
-            <button
-                onclick="saveCard()"
-                class="bg-indigo-600 px-4 py-2 rounded"
-            >
-                保存
-            </button>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<!-- デッキ不足抽出 -->
-
-<div id="deckModal" class="modal">
-
-    <div class="bg-slate-800 p-5 rounded w-full max-w-xl">
-
-        <h2 class="text-xl font-bold mb-3">
-            デッキリスト不足抽出
-        </h2>
-
-        <textarea
-            id="deckText"
-            rows="10"
-            class="w-full bg-slate-700 rounded p-3 mb-3"
-        ></textarea>
-
-        <div class="flex justify-end gap-2">
-
-            <button
-                onclick="closeDeckModal()"
-                class="bg-gray-600 px-4 py-2 rounded"
-            >
-                閉じる
-            </button>
-
-            <button
-                onclick="analyzeDeck()"
-                class="bg-green-600 px-4 py-2 rounded"
-            >
-                解析
-            </button>
-
-        </div>
-
-    </div>
-
-</div>
-
-<let currentFilter = "all";
-
-/* ---------- 保存 ---------- */
-
-function saveStorage() {
-    localStorage.setItem(
-        "duemaCards",
-        JSON.stringify(cards)
-    );
-
-    updateStats();
 }
 
-/* ---------- 統計 ---------- */
-
-function updateStats(){
-
-    const total = cards.length;
-
-    const owned = cards.filter(
-        c => c.qty > 0
-    ).length;
-
-    const qty = cards.reduce(
-        (sum,c)=>sum + Number(c.qty),
-        0
-    );
-
-    const shortage = cards.reduce(
-        (sum,c)=>sum + Math.max(0,c.target-c.qty),
-        0
-    );
-
-    document.getElementById("statTotal").textContent = total;
-    document.getElementById("statOwned").textContent = owned;
-    document.getElementById("statQty").textContent = qty;
-    document.getElementById("statNeed").textContent = shortage;
 }
 
-/* ---------- フィルタ ---------- */
+function saveData(){
 
-function setFilter(filter){
+localStorage.setItem(
+"duema_cards",
+JSON.stringify(cards)
+);
 
-    currentFilter = filter;
-
-    renderCards();
 }
 
-/* ---------- 描画 ---------- */
+function addCard(){
 
-function renderCards(){
+const name=
+prompt("カード名");
 
-    const list = document.getElementById("cardList");
+if(!name)return;
 
-    const keyword =
-        document.getElementById("searchBox")
-        .value
-        .toLowerCase();
+cards.push({
+id:Date.now(),
+name:name,
+qty:0
+});
 
-    let filtered = cards.filter(card=>{
+saveData();
+renderCards();
 
-        const hit =
-            card.name.toLowerCase()
-            .includes(keyword);
-
-        if(!hit) return false;
-
-        if(currentFilter==="owned"){
-            return card.qty > 0;
-        }
-
-        if(currentFilter==="missing"){
-            return card.qty < card.target;
-        }
-
-        return true;
-
-    });
-
-    list.innerHTML = filtered.map(card=>{
-
-        const shortage =
-            Math.max(
-                0,
-                card.target-card.qty
-            );
-
-        return `
-        <div class="card rounded p-4">
-
-            <h3 class="font-bold mb-2">
-                ${card.name}
-            </h3>
-
-            <div class="text-sm text-slate-300 mb-2">
-                所持 ${card.qty}枚
-            </div>
-
-            <div class="text-sm text-red-300 mb-3">
-                不足 ${shortage}枚
-            </div>
-
-            <div class="flex gap-2 mb-3">
-
-                <button
-                    onclick="changeQty('${card.id}',-1)"
-                    class="bg-slate-700 w-8 h-8 rounded"
-                >
-                    -
-                </button>
-
-                <button
-                    onclick="changeQty('${card.id}',1)"
-                    class="bg-indigo-600 w-8 h-8 rounded"
-                >
-                    +
-                </button>
-
-            </div>
-
-            <button
-                onclick="deleteCard('${card.id}')"
-                class="bg-red-600 px-3 py-1 rounded text-sm"
-            >
-                削除
-            </button>
-
-        </div>
-        `;
-
-    }).join("");
-
-    updateStats();
 }
 
-/* ---------- 枚数変更 ---------- */
+function changeQty(id,amount){
 
-function changeQty(id, amount){
+const card=
+cards.find(
+c=>c.id===id
+);
 
-    const card = cards.find(
-        c=>c.id===id
-    );
+if(!card)return;
 
-    if(!card) return;
+card.qty=
+Math.max(
+0,
+card.qty+amount
+);
 
-    card.qty =
-        Math.max(
-            0,
-            Number(card.qty)+amount
-        );
+saveData();
+renderCards();
 
-    saveStorage();
-    renderCards();
 }
-
-/* ---------- 追加モーダル ---------- */
-
-function openAddModal(){
-
-    document
-    .getElementById("addModal")
-    .classList
-    .add("show");
-}
-
-function closeAddModal(){
-
-    document
-    .getElementById("addModal")
-    .classList
-    .remove("show");
-}
-
-/* ---------- カード追加 ---------- */
-
-function saveCard(){
-
-    const name =
-        document
-        .getElementById("cardName")
-        .value
-        .trim();
-
-    if(!name){
-
-        alert("カード名を入力してください");
-        return;
-    }
-
-    const qty = parseInt(
-        document.getElementById("cardQty").value
-    ) || 0;
-
-    const target = parseInt(
-        document.getElementById("cardTarget").value
-    ) || 4;
-
-    cards.push({
-
-        id:
-            "c_" +
-            Date.now(),
-
-        name,
-        qty,
-        target
-
-    });
-
-    document.getElementById("cardName").value = "";
-
-    saveStorage();
-
-    renderCards();
-
-    closeAddModal();
-}
-
-/* ---------- 削除 ---------- */
 
 function deleteCard(id){
 
-    if(!confirm("削除しますか？")){
-        return;
-    }
+if(
+!confirm("削除しますか？")
+)return;
 
-    cards =
-        cards.filter(
-            c=>c.id!==id
-        );
+cards=
+cards.filter(
+c=>c.id!==id
+);
 
-    saveStorage();
-
-    renderCards();
-}
-
-/* ---------- 起動 ---------- */
-
-function loadStorage(){
-
-    const saved =
-        localStorage.getItem(
-            "duemaCards"
-        );
-
-    if(saved){
-
-        try{
-
-            cards = JSON.parse(saved);
-
-        }catch{
-
-            cards = [...DEFAULT_CARDS];
-        }
-
-    }else{
-
-        cards = [...DEFAULT_CARDS];
-    }
-}
-
-loadStorage();
-
-renderCards();>
-/* =====================
-   JSONエクスポート
-===================== */
-
-function exportJSON(){
-
-    const data = JSON.stringify(
-        cards,
-        null,
-        2
-    );
-
-    const blob = new Blob(
-        [data],
-        {
-            type:"application/json"
-        }
-    );
-
-    const url =
-        URL.createObjectURL(blob);
-
-    const a =
-        document.createElement("a");
-
-    a.href = url;
-
-    a.download =
-        "duema_cards_backup.json";
-
-    a.click();
-
-    URL.revokeObjectURL(url);
-}
-
-/* =====================
-   JSONインポート
-===================== */
-
-function importJSON(event){
-
-    const file =
-        event.target.files[0];
-
-    if(!file) return;
-
-    const reader =
-        new FileReader();
-
-    reader.onload = function(e){
-
-        try{
-
-            const imported =
-                JSON.parse(
-                    e.target.result
-                );
-
-            if(
-                !Array.isArray(imported)
-            ){
-                throw new Error();
-            }
-
-            cards = imported;
-
-            saveStorage();
-
-            renderCards();
-
-            alert(
-                "読込完了"
-            );
-
-        }catch{
-
-            alert(
-                "JSON形式が不正です"
-            );
-        }
-
-    };
-
-    reader.readAsText(file);
+saveData();
+renderCards();
 
 }
 
-/* =====================
-   デッキモーダル
-===================== */
+function renderCards(){
 
-function openDeckModal(){
+const keyword=
+document
+.getElementById("searchBox")
+.value
+.toLowerCase();
 
-    document
-    .getElementById(
-        "deckModal"
-    )
-    .classList
-    .add("show
+const list=
+document
+.getElementById("cardList");
+
+const filtered=
+cards.filter(
+card=>
+card.name
+.toLowerCase()
+.includes(keyword)
+);
+
+list.innerHTML=
+filtered.map(card=>`
+
+<div class="card">
+
+<h3>${card.name}</h3>
+
+<p>所持枚数: ${card.qty}</p>
+
+<button
+class="minus"
+onclick="changeQty(${card.id},-1)"
+>
+－
+</button>
+
+<button
+class="plus"
+onclick="changeQty(${card.id},1)"
+>
+＋
+</button>
+
+<button
+onclick="deleteCard(${card.id})"
+>
+削除
+</button>
+
+</div>
+
+`).join("");
+
+}
+
+loadData();
+renderCards();
+
+</script>
+
+</body>
+</html>
