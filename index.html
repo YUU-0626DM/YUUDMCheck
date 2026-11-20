@@ -78,6 +78,37 @@ placeholder="カード名検索"
 oninput="renderCards()"
 >
 
+<select
+id="civilizationFilter"
+onchange="renderCards()"
+>
+
+<option value="">全文明</option>
+
+<option value="火">火</option>
+<option value="水">水</option>
+<option value="自然">自然</option>
+<option value="光">光</option>
+<option value="闇">闇</option>
+<option value="ゼロ">ゼロ</option>
+
+</select>
+
+<input
+id="costFilter"
+type="number"
+placeholder="最大コスト"
+oninput="renderCards()"
+>
+
+<input
+id="raceFilter"
+type="text"
+placeholder="種族"
+oninput="renderCards()"
+>
+  
+
 <button
 class="add"
 onclick="addCard()"
@@ -173,7 +204,11 @@ cards.push({
 
 id:Date.now(),
 name:name,
-qty:0
+qty:0,
+cost:0,
+civilization:"",
+race:"",
+rarity:""
 
 });
 
@@ -229,14 +264,64 @@ document
 .value
 .toLowerCase();
 
-const filtered=
-cards.filter(card=>
+const civ =
+document
+.getElementById(
+"civilizationFilter"
+).value;
 
-card.name
+const cost =
+document
+.getElementById(
+"costFilter"
+).value;
+
+const race =
+document
+.getElementById(
+"raceFilter"
+).value
+.toLowerCase();
+
+const filtered =
+cards.filter(card=>{
+
+if(
+!card.name
 .toLowerCase()
 .includes(keyword)
+){
+return false;
+}
 
-);
+if(
+civ &&
+card.civilization !== civ
+){
+return false;
+}
+
+if(
+cost &&
+card.cost > Number(cost)
+){
+return false;
+}
+
+if(
+race &&
+!(
+card.race || ""
+)
+.toLowerCase()
+.includes(race)
+){
+return false;
+}
+
+return true;
+
+});
 
 document
 .getElementById("cardList")
@@ -247,6 +332,21 @@ filtered.map(card=>`
 <div class="card">
 
 <h3>${card.name}</h3>
+
+<p>
+文明:
+${card.civilization || "-"}
+</p>
+
+<p>
+コスト:
+${card.cost || 0}
+</p>
+
+<p>
+種族:
+${card.race || "-"}
+</p>
 
 <p>
 所持枚数:
@@ -267,6 +367,11 @@ onclick="changeQty(${card.id},1)"
 ＋
 </button>
 
+<button
+onclick="editCard(${card.id})"
+>
+編集
+</button>
 <button
 onclick="deleteCard(${card.id})"
 >
