@@ -31,6 +31,7 @@ button{
     border:none;
     border-radius:6px;
     padding:8px 12px;
+    margin-right:5px;
 }
 
 .add{
@@ -45,6 +46,11 @@ button{
 
 .minus{
     background:#dc2626;
+    color:white;
+}
+
+.save{
+    background:#2563eb;
     color:white;
 }
 
@@ -79,6 +85,28 @@ onclick="addCard()"
 カード追加
 </button>
 
+<button
+class="save"
+onclick="exportJSON()"
+>
+JSON保存
+</button>
+
+<button
+onclick="analyzeDeck()"
+style="background:#16a34a;color:white;"
+>
+デッキ不足抽出
+</button>    
+<label style="cursor:pointer;">
+JSON読込
+<input
+type="file"
+hidden
+onchange="importJSON(event)"
+>
+</label>
+
 <div id="cardList"></div>
 
 </div>
@@ -94,26 +122,31 @@ localStorage.getItem("duema_cards");
 
 if(saved){
 
-cards=JSON.parse(saved);
+cards=
+JSON.parse(saved);
 
 }else{
 
 cards=[
+
 {
 id:1,
 name:"フェアリー・ライフ",
 qty:0
 },
+
 {
 id:2,
 name:"天災 デドダム",
 qty:0
 },
+
 {
 id:3,
 name:"飛翔龍5000VT",
 qty:0
 }
+
 ];
 
 }
@@ -137,12 +170,15 @@ prompt("カード名");
 if(!name)return;
 
 cards.push({
+
 id:Date.now(),
 name:name,
 qty:0
+
 });
 
 saveData();
+
 renderCards();
 
 }
@@ -163,6 +199,7 @@ card.qty+amount
 );
 
 saveData();
+
 renderCards();
 
 }
@@ -179,6 +216,7 @@ c=>c.id!==id
 );
 
 saveData();
+
 renderCards();
 
 }
@@ -191,26 +229,29 @@ document
 .value
 .toLowerCase();
 
-const list=
-document
-.getElementById("cardList");
-
 const filtered=
-cards.filter(
-card=>
+cards.filter(card=>
+
 card.name
 .toLowerCase()
 .includes(keyword)
+
 );
 
-list.innerHTML=
+document
+.getElementById("cardList")
+.innerHTML=
+
 filtered.map(card=>`
 
 <div class="card">
 
 <h3>${card.name}</h3>
 
-<p>所持枚数: ${card.qty}</p>
+<p>
+所持枚数:
+${card.qty}
+</p>
 
 <button
 class="minus"
@@ -238,7 +279,168 @@ onclick="deleteCard(${card.id})"
 
 }
 
+function exportJSON(){
+
+const json=
+JSON.stringify(
+cards,
+null,
+2
+);
+
+const blob=
+new Blob(
+[json],
+{
+type:"application/json"
+}
+);
+
+const url=
+URL.createObjectURL(blob);
+
+const a=
+document.createElement("a");
+
+a.href=url;
+
+a.download=
+"duema_cards_backup.json";
+
+a.click();
+
+URL.revokeObjectURL(url);
+
+}
+
+function importJSON(event){
+
+const file=
+event.target.files[0];
+
+if(!file)return;
+
+const reader=
+new FileReader();
+
+reader.onload=function(e){
+
+try{
+
+cards=
+JSON.parse(
+e.target.result
+);
+
+saveData();
+
+renderCards();
+
+alert(
+"復元完了"
+);
+
+}catch{
+
+alert(
+"JSON読込失敗"
+);
+
+}
+
+};
+
+reader.readAsText(file);
+
+}
+
+function analyzeDeck(){
+
+const input=
+prompt(
+`デッキリストを貼り付け
+
+例
+
+4 フェアリー・ライフ
+4 天災 デドダム
+2 飛翔龍5000VT`
+);
+
+if(!input) return;
+
+const lines=
+input.split("\n");
+
+let result=[];
+
+lines.forEach(line=>{
+
+line=line.trim();
+
+if(!line) return;
+
+const match=
+line.match(/^(\d+)\s+(.+)$/);
+
+if(!match) return;
+
+const need=
+parseInt(match[1]);
+
+const name=
+match[2].trim();
+
+const ownedCard=
+cards.find(
+c=>
+c.name.toLowerCase()
+===
+name.toLowerCase()
+);
+
+const owned=
+ownedCard
+? ownedCard.qty
+: 0;
+
+const shortage=
+Math.max(
+0,
+need-owned
+);
+
+if(shortage>0){
+
+result.push(
+`${name}
+必要:${need}
+所持:${owned}
+不足:${shortage}`
+);
+
+}
+
+});
+
+if(result.length===0){
+
+alert(
+"不足カードはありません"
+);
+
+return;
+
+}
+
+alert(
+result.join("\n\n")
+);
+
+}
+
 loadData();
+
 renderCards();
 
 </script>
