@@ -1,80 +1,187 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>デュエマ所持カード管理</title>
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>
+デュエマ所持カード管理ツール
+</title>
 
 <style>
+
 body{
-    font-family:sans-serif;
-    background:#0f172a;
-    color:white;
-    margin:0;
-    padding:20px;
+
+background:#0f172a;
+color:white;
+
+font-family:sans-serif;
+
+margin:0;
+padding:20px;
+
 }
 
 .container{
-    max-width:1000px;
-    margin:auto;
+
+max-width:1200px;
+margin:auto;
+
 }
 
-.card{
-    background:#1e293b;
-    padding:15px;
-    border-radius:10px;
-    margin-bottom:10px;
+h1{
+
+margin-bottom:20px;
+
+}
+
+.toolbar{
+
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+
+margin-bottom:20px;
+
 }
 
 button{
-    cursor:pointer;
-    border:none;
-    border-radius:6px;
-    padding:8px 12px;
-    margin-right:5px;
+
+padding:8px 12px;
+
+border:none;
+
+border-radius:6px;
+
+cursor:pointer;
+
 }
 
-.add{
-    background:#4f46e5;
-    color:white;
+input,select{
+
+padding:8px;
+
+border-radius:6px;
+
+border:none;
+
 }
 
-.plus{
-    background:#16a34a;
-    color:white;
+.card{
+
+background:#1e293b;
+
+padding:15px;
+
+border-radius:10px;
+
+margin-bottom:10px;
+
 }
 
-.minus{
-    background:#dc2626;
-    color:white;
+.card-grid{
+
+display:grid;
+
+grid-template-columns:
+repeat(auto-fill,minmax(280px,1fr));
+
+gap:10px;
+
 }
 
-.save{
-    background:#2563eb;
-    color:white;
+.add-btn{
+
+background:#4f46e5;
+color:white;
+
 }
 
-input{
-    padding:8px;
-    border-radius:6px;
+.json-btn{
+
+background:#2563eb;
+color:white;
+
 }
 
-#cardList{
-    margin-top:20px;
+.deck-btn{
+
+background:#16a34a;
+color:white;
+
 }
+
+.edit-btn{
+
+background:#f59e0b;
+color:black;
+
+}
+
+.delete-btn{
+
+background:#dc2626;
+color:white;
+
+}
+
+.plus-btn{
+
+background:#22c55e;
+color:white;
+
+}
+
+.minus-btn{
+
+background:#ef4444;
+color:white;
+
+}
+.card-info{
+
+font-size:14px;
+
+line-height:1.5;
+
+}
+
+.ruby{
+
+font-size:10px;
+
+color:#94a3b8;
+
+display:block;
+
+margin-top:-4px;
+
+margin-bottom:4px;
+
+}
+
 </style>
 
 </head>
+
 <body>
 
 <div class="container">
 
-<h1>デュエマ所持カード管理</h1>
+<h1>
+デュエマ所持カード管理ツール
+</h1>
+
+<div class="toolbar">
 
 <input
 id="searchBox"
 type="text"
-placeholder="カード名検索"
+placeholder="カード名・ルビ検索"
 oninput="renderCards()"
 >
 
@@ -83,7 +190,9 @@ id="civilizationFilter"
 onchange="renderCards()"
 >
 
-<option value="">全文明</option>
+<option value="">
+全文明
+</option>
 
 <option value="火">火</option>
 <option value="水">水</option>
@@ -107,78 +216,80 @@ type="text"
 placeholder="種族"
 oninput="renderCards()"
 >
-  
+
+<input
+id="rarityFilter"
+type="text"
+placeholder="レアリティ"
+oninput="renderCards()"
+>
 
 <button
-class="add"
+class="add-btn"
 onclick="addCard()"
 >
 カード追加
 </button>
 
 <button
-class="save"
+class="json-btn"
 onclick="exportJSON()"
 >
 JSON保存
 </button>
 
 <button
+class="deck-btn"
 onclick="analyzeDeck()"
-style="background:#16a34a;color:white;"
 >
-デッキ不足抽出
-</button>    
-<label style="cursor:pointer;">
-JSON読込
+不足抽出
+</button>
+
+<label>
+
 <input
 type="file"
 hidden
 onchange="importJSON(event)"
 >
+
+<button
+type="button"
+class="json-btn"
+>
+JSON読込
+</button>
+
 </label>
 
-<div id="cardList"></div>
+</div>
+
+<div
+id="cardList"
+class="card-grid"
+></div>
 
 </div>
 
 <script>
 
-let cards=[];
+let cards = [];
 
 function loadData(){
 
-const saved=
-localStorage.getItem("duema_cards");
+const saved =
+localStorage.getItem(
+"duema_cards"
+);
 
 if(saved){
 
-cards=
+cards =
 JSON.parse(saved);
 
 }else{
 
-cards=[
-
-{
-id:1,
-name:"フェアリー・ライフ",
-qty:0
-},
-
-{
-id:2,
-name:"天災 デドダム",
-qty:0
-},
-
-{
-id:3,
-name:"飛翔龍5000VT",
-qty:0
-}
-
-];
+cards = [];
 
 }
 
@@ -187,28 +298,72 @@ qty:0
 function saveData(){
 
 localStorage.setItem(
+
 "duema_cards",
+
 JSON.stringify(cards)
+
 );
 
 }
-
 function addCard(){
 
-const name=
+const name =
 prompt("カード名");
 
-if(!name)return;
+if(!name) return;
+
+const ruby =
+prompt(
+"カード名のルビ"
+) || "";
+
+const cost =
+parseInt(
+prompt("コスト")
+) || 0;
+
+const civilization =
+prompt(
+"文明（例: 火/水/自然）"
+) || "";
+
+const race =
+prompt(
+"種族"
+) || "";
+
+const rarity =
+prompt(
+"レアリティ(C/U/R/VR/SR/OR)"
+) || "";
+
+const target =
+parseInt(
+prompt(
+"必要枚数"
+)
+) || 4;
 
 cards.push({
 
 id:Date.now(),
+
 name:name,
+
+ruby:ruby,
+
 qty:0,
-cost:0,
-civilization:"",
-race:"",
-rarity:""
+
+target:target,
+
+cost:cost,
+
+civilization:civilization,
+
+race:race,
+
+rarity:rarity
 
 });
 
@@ -218,20 +373,70 @@ renderCards();
 
 }
 
-function changeQty(id,amount){
+function editCard(id){
 
-const card=
+const card =
 cards.find(
-c=>c.id===id
+c => c.id === id
 );
 
-if(!card)return;
+if(!card) return;
 
-card.qty=
-Math.max(
-0,
-card.qty+amount
+const newName =
+prompt(
+"カード名",
+card.name
 );
+
+if(!newName) return;
+
+const newRuby =
+prompt(
+"ルビ",
+card.ruby || ""
+);
+
+const newCost =
+parseInt(
+prompt(
+"コスト",
+card.cost || 0
+)
+) || 0;
+
+const newCivilization =
+prompt(
+"文明",
+card.civilization || ""
+);
+
+const newRace =
+prompt(
+"種族",
+card.race || ""
+);
+
+const newRarity =
+prompt(
+"レアリティ",
+card.rarity || ""
+);
+
+const newTarget =
+parseInt(
+prompt(
+"必要枚数",
+card.target || 4
+)
+) || 4;
+
+card.name = newName;
+card.ruby = newRuby;
+card.cost = newCost;
+card.civilization = newCivilization;
+card.race = newRace;
+card.rarity = newRarity;
+card.target = newTarget;
 
 saveData();
 
@@ -242,12 +447,16 @@ renderCards();
 function deleteCard(id){
 
 if(
-!confirm("削除しますか？")
-)return;
+!confirm(
+"削除しますか？"
+)
+){
+return;
+}
 
-cards=
+cards =
 cards.filter(
-c=>c.id!==id
+c => c.id !== id
 );
 
 saveData();
@@ -256,9 +465,30 @@ renderCards();
 
 }
 
+function changeQty(id, amount){
+
+const card =
+cards.find(
+c => c.id === id
+);
+
+if(!card) return;
+
+card.qty =
+Math.max(
+0,
+(card.qty || 0)
++ amount
+);
+
+saveData();
+
+renderCards();
+
+}
 function renderCards(){
 
-const keyword=
+const keyword =
 document
 .getElementById("searchBox")
 .value
@@ -266,21 +496,24 @@ document
 
 const civ =
 document
-.getElementById(
-"civilizationFilter"
-).value;
+.getElementById("civilizationFilter")
+.value;
 
 const cost =
 document
-.getElementById(
-"costFilter"
-).value;
+.getElementById("costFilter")
+.value;
 
 const race =
 document
-.getElementById(
-"raceFilter"
-).value
+.getElementById("raceFilter")
+.value
+.toLowerCase();
+
+const rarity =
+document
+.getElementById("rarityFilter")
+.value
 .toLowerCase();
 
 const filtered =
@@ -290,20 +523,30 @@ if(
 !card.name
 .toLowerCase()
 .includes(keyword)
+&&
+!(
+card.ruby || ""
+)
+.toLowerCase()
+.includes(keyword)
 ){
 return false;
 }
 
 if(
 civ &&
-card.civilization !== civ
+!(
+card.civilization || ""
+)
+.includes(civ)
 ){
 return false;
 }
 
 if(
 cost &&
-card.cost > Number(cost)
+(card.cost || 0)
+> Number(cost)
 ){
 return false;
 }
@@ -319,60 +562,114 @@ card.race || ""
 return false;
 }
 
+if(
+rarity &&
+!(
+card.rarity || ""
+)
+.toLowerCase()
+.includes(rarity)
+){
+return false;
+}
+
 return true;
 
 });
 
 document
 .getElementById("cardList")
-.innerHTML=
-
+.innerHTML =
 filtered.map(card=>`
 
 <div class="card">
 
-<h3>${card.name}</h3>
+<h3>
+
+<ruby>
+
+${card.name}
+
+<rt style="
+font-size:10px;
+color:#94a3b8;
+">
+
+${card.ruby || ""}
+
+</rt>
+
+</ruby>
+
+</h3>
+
+<div class="card-info">
 
 <p>
-文明:
+文明：
 ${card.civilization || "-"}
 </p>
 
 <p>
-コスト:
+コスト：
 ${card.cost || 0}
 </p>
 
 <p>
-種族:
+種族：
 ${card.race || "-"}
 </p>
 
 <p>
-所持枚数:
-${card.qty}
+レアリティ：
+${card.rarity || "-"}
 </p>
 
+<p>
+所持枚数：
+${card.qty || 0}
+</p>
+
+<p>
+必要枚数：
+${card.target || 4}
+</p>
+
+<p>
+不足枚数：
+${Math.max(
+0,
+(card.target || 4)
+-
+(card.qty || 0)
+)}
+</p>
+
+</div>
+
 <button
-class="minus"
+class="minus-btn"
 onclick="changeQty(${card.id},-1)"
 >
 －
 </button>
 
 <button
-class="plus"
+class="plus-btn"
 onclick="changeQty(${card.id},1)"
 >
 ＋
 </button>
 
 <button
+class="edit-btn"
 onclick="editCard(${card.id})"
 >
 編集
 </button>
+
 <button
+class="delete-btn"
 onclick="deleteCard(${card.id})"
 >
 削除
@@ -380,20 +677,17 @@ onclick="deleteCard(${card.id})"
 
 </div>
 
-`).join("");
+`).
+    function exportJSON(){
 
-}
-
-function exportJSON(){
-
-const json=
+const json =
 JSON.stringify(
 cards,
 null,
 2
 );
 
-const blob=
+const blob =
 new Blob(
 [json],
 {
@@ -401,15 +695,15 @@ type:"application/json"
 }
 );
 
-const url=
+const url =
 URL.createObjectURL(blob);
 
-const a=
+const a =
 document.createElement("a");
 
-a.href=url;
+a.href = url;
 
-a.download=
+a.download =
 "duema_cards_backup.json";
 
 a.click();
@@ -420,19 +714,20 @@ URL.revokeObjectURL(url);
 
 function importJSON(event){
 
-const file=
+const file =
 event.target.files[0];
 
-if(!file)return;
+if(!file) return;
 
-const reader=
+const reader =
 new FileReader();
 
-reader.onload=function(e){
+reader.onload =
+function(e){
 
 try{
 
-cards=
+cards =
 JSON.parse(
 e.target.result
 );
@@ -442,7 +737,7 @@ saveData();
 renderCards();
 
 alert(
-"復元完了"
+"JSON読込完了"
 );
 
 }catch{
@@ -461,7 +756,7 @@ reader.readAsText(file);
 
 function analyzeDeck(){
 
-const input=
+const input =
 prompt(
 `デッキリストを貼り付け
 
@@ -474,61 +769,68 @@ prompt(
 
 if(!input) return;
 
-const lines=
+const lines =
 input.split("\n");
 
-let result=[];
+let result = [];
 
 lines.forEach(line=>{
 
-line=line.trim();
+line = line.trim();
 
 if(!line) return;
 
-const match=
-line.match(/^(\d+)\s+(.+)$/);
+const match =
+line.match(
+/^(\\d+)\\s+(.+)$/
+);
 
 if(!match) return;
 
-const need=
-parseInt(match[1]);
+const need =
+parseInt(
+match[1]
+);
 
-const name=
+const name =
 match[2].trim();
 
-const ownedCard=
+const ownedCard =
 cards.find(
-c=>
+c =>
 c.name.toLowerCase()
 ===
 name.toLowerCase()
 );
 
-const owned=
+const owned =
 ownedCard
 ? ownedCard.qty
 : 0;
 
-const shortage=
+const shortage =
 Math.max(
 0,
-need-owned
+need - owned
 );
 
-if(shortage>0){
+if(shortage > 0){
 
 result.push(
+
 `${name}
+
 必要:${need}
 所持:${owned}
 不足:${shortage}`
+
 );
 
 }
 
 });
 
-if(result.length===0){
+if(result.length === 0){
 
 alert(
 "不足カードはありません"
@@ -539,7 +841,9 @@ return;
 }
 
 alert(
-result.join("\n\n")
+result.join(
+"\n\n"
+)
 );
 
 }
@@ -551,4 +855,5 @@ renderCards();
 </script>
 
 </body>
+
 </html>
